@@ -1,0 +1,70 @@
+---
+import { Content as Overview } from '../content/Overview.md'; 
+import { Content as Rules } from '../content/Rules.md'; 
+import About from '../content/About.astro'; 
+
+// ComponentToggle.astro
+const tabs = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'rules', label: 'Proposed Rules' },
+  { id: 'about', label: 'About' }
+];
+---
+
+<div class="w-full max-w-4xl mx-auto p-4">
+  <!-- Toggle Bar -->
+  <div class="flex justify-center border-b border-gray-200 mb-6">
+    {tabs.map(tab => (
+      <button
+        class="tab-button px-6 py-3 text-gray-600 hover:text-gray-900 border-b-2 border-transparent transition-colors"
+        data-tab={tab.id}
+      >
+        {tab.label}
+      </button>
+    ))}
+  </div>
+
+  <!-- Content Panels -->
+  <div class="tab-content" data-content="overview">
+    <Overview />
+  </div>
+  
+  <div class="tab-content hidden" data-content="rules">
+    <Rules />
+  </div>
+  
+  <div class="tab-content hidden" data-content="about">
+    <About />
+  </div>
+</div>
+
+<script>
+  const buttons = document.querySelectorAll('.tab-button');
+  const contents = document.querySelectorAll('.tab-content');
+
+  buttons.forEach(button => {
+    button.addEventListener('click', () => {
+      const tabId = button.dataset.tab;
+
+      // Remove active state from all buttons
+      buttons.forEach(btn => {
+        btn.classList.remove('border-brown-500', 'text-brown-600');
+        btn.classList.add('border-transparent', 'text-gray-600');
+      });
+
+      // Add active state to clicked button
+      button.classList.remove('border-transparent', 'text-gray-600');
+      button.classList.add('border-brown-500', 'text-brown-600');
+
+      // Hide all content
+      contents.forEach(content => content.classList.add('hidden'));
+
+      // Show selected content
+      const activeContent = document.querySelector(`[data-content="${tabId}"]`);
+      activeContent?.classList.remove('hidden');
+    });
+  });
+
+  // Set initial active state
+  buttons[0]?.classList.add('border-brown-500', 'text-brown-600');
+</script>
