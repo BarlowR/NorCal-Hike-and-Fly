@@ -12,34 +12,34 @@ All scoring is done using .igc tracklogs. These tracklogs must contain a single 
 
 A method of submitting tracklogs on this site will be provided.
 
-#### Hiking
-Distances of hiking segments are computed by summing the total distances between points taken at 20 second intervals. 
+#### Triangles
+All tracks are scored as either a flat triangle or a FAI triangle. There is no open distance scoring type. Any triangle that does not conform to the FAI specification is considered a flat triangle. Any triangle where no leg connecting vertices is shorter than 28% of the total distance is considered a FAI triangles. 
 
-Hiking segments are awarded two points per km of total distance. 
+Triangles are calculated as 5 different points: The two closing points, and triangle vertices. The closing points are not necessarily the start and end of the tracklog, but instead are the two points on the tracklog where the triangle is closest to connecting.
 
-#### Flying
-Distances of flying segments are computed using the distance between discrete points of the tracklog: 
-* End of hiking segments
-* Start of hiking segments 
-* Computed triangle turnpoints. 
+Triangles are calculated from tracklogs using the triangle solver from the igc-xc-score library.
 
-#### Triangle
-Triangles are calculated as 5 different points: The start point, the end point, and triangle vertices. The start point and end point are not necessarily the start and end of the tracklog, but instead are the two points on the tracklog where the triangle is closest to connecting.
+The score is initially established as 1 point per km of the total perimeter of the triangle calculated from the tracklog. 
 
-Two types of triangles are possible, flat triangle and FAI triangle. Any triangle that does not conform to the FAI specification is considered a flat triangle. Any triangle where no leg connecting vertices is shorter than 28% of the total distance is considered a FAI triangles. 
-
-#### Closing Distance & Triangle Closing
+#### Closing Distance, Triangle Closing, Triangle Closing Penalty 
 The closing distance is calculated as the distance between the start point and the end point. Any triangle with a closing distance less than 5% of the total distance of the sum of the legs connecting vertices is considered "Closed".
 
-#### Triangle Closing Penalty 
-The closing distance is calculated and a penalty of 1 point per km is assessed to the score. 
+A penalty of **2 points** per km of closing distance is assessed to the score.  
+*Note that this penalty is significantly higher than normal XContest scoring*
+
+
+#### Hiking Bonus
+The total distance hiked is computed from the tracklog during portions when the pilot was on the ground. One point is added to the score for each km hiked. 
+
 
 #### Triangle Multiplier
-Different types of triangles are awarded a multiplier. 
+After:
+* Triangle perimeter is calculated, closing penalty is assessed, and the hiking bonus is added, the resulting score is given a multiplier based on the triangle type and whether the triangle was considered closed. 
+
 * Open flat triangle are given a 1.2 multiplier
 * Closed flat triangle are given a 1.4 multiplier
 * Open FAI triangle are given a 1.4 multiplier
 * Closed FAI triangle are given a 1.6 multiplier
 
 #### Hike and Fly with Friends Bonus
-An additional multiplier of 1.5 is used if at least four tracklogs are submitted for a single day that start at the same place at the same time. I.E. go hike and fly with your friends. 
+An additional multiplier of 1.5 is added if at least four tracklogs are submitted for a single day that start at the same place at the same time. I.E. go hike and fly with your friends. 

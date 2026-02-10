@@ -12,6 +12,7 @@
     "@tailwindcss/vite": "^4.1.18",
     "astro": "^5.17.1",
     "igc-xc-score": "^1.8.0",
+    "leaflet": "^1.9.4",
     "tailwindcss": "^4.1.18"
   }
 }

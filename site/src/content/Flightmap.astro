@@ -1,0 +1,220 @@
+---
+// FlightMap.astro
+// Requires: npm install leaflet
+// Requires: npm install -D @types/leaflet (for TypeScript)
+---
+
+<div id="flight-map" class="w-full h-96 rounded-lg border border-gray-200 bg-gray-100 hidden"></div>
+
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+  crossorigin=""
+/>
+
+<script>
+  import L from 'leaflet';
+
+  const mapContainer = document.getElementById('flight-map')!;
+  let map: L.Map | null = null;
+  let layerGroup: L.LayerGroup | null = null;
+
+  function initMap() {
+    if (map) return;
+    map = L.map(mapContainer).setView([0, 0], 2);
+    L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+      attribution:
+        '&copy; <a href="https://opentopomap.org">OpenTopoMap</a> contributors',
+      maxZoom: 17,
+    }).addTo(map);
+    layerGroup = L.layerGroup().addTo(map);
+  }
+
+  function displayFlight(detail: any) {
+    const { flight, result } = detail;
+    const { scoreInfo, opt } = result;
+    const { tp, cp, ep } = scoreInfo;
+
+    mapContainer.classList.remove('hidden');
+    initMap();
+    layerGroup!.clearLayers();
+
+    // Draw the flight track, coloring ground segments red
+    const fixes = flight?.filtered || flight?.fixes;
+    if (fixes?.length) {
+      type Fix = {
+        latitude: number;
+        longitude: number;
+        stateGround?: boolean;
+        stateFlight?: boolean;
+      };
+
+      type Segment = {
+        state: 'ground' | 'flight' | 'unknown';
+        points: L.LatLngExpression[];
+      };
+
+      const segments: Segment[] = [];
+      let currentState: Segment['state'] | null = null;
+      let currentPoints: L.LatLngExpression[] = [];
+
+      for (const fix of flight.filtered) {
+         // hma is already computed by the library's analyze()
+        fix.onGround = (!fix.stateFlight) && fix.hma < 2.5; // km/h threshold
+      }
+
+      for (const fix of fixes as Fix[]) {
+        const state: Segment['state'] = fix.onGround
+          ? 'ground'
+          : 'flight';
+
+        if (state !== currentState) {
+          if (currentPoints.length > 0) {
+            segments.push({ state: currentState!, points: currentPoints });
+            // overlap last point for continuity
+            currentPoints = [currentPoints[currentPoints.length - 1]];
+          }
+          currentState = state;
+        }
+        currentPoints.push([fix.latitude, fix.longitude]);
+      }
+      if (currentPoints.length > 0) {
+        segments.push({ state: currentState!, points: currentPoints });
+      }
+
+      const hasStateInfo = fixes.some(
+        (f: Fix) => f.stateGround || f.stateFlight
+      );
+
+      if (hasStateInfo) {
+        const styleMap = {
+          ground: { color: '#ef4444', weight: 10, opacity: 1 },
+          flight: { color: '#6b7280', weight: 6, opacity: 1 },
+          unknown: { color: '#f59e0b', weight: 8, opacity: 1 },
+        };
+        for (const seg of segments) {
+          L.polyline(seg.points, styleMap[seg.state]).addTo(layerGroup!);
+        }
+      } else {
+        // No state info available — draw uniform track
+        const trackCoords: L.LatLngExpression[] = fixes.map(
+          (fix: Fix) => [fix.latitude, fix.longitude] as L.LatLngExpression
+        );
+        L.polyline(trackCoords, {
+          color: '#6b7280',
+          weight: 4,
+          opacity: 0.5,
+        }).addTo(layerGroup!);
+      }
+    }
+
+    // Draw triangle / distance legs
+    if (tp?.length) {
+      const tpCoords: L.LatLngExpression[] = tp.map(
+        (p: { x: number; y: number }) => [p.y, p.x] as L.LatLngExpression
+      );
+
+      // Close the shape if it's a triangle (has closing points)
+      const shapeCoords = cp?.in ? [...tpCoords, tpCoords[0]] : tpCoords;
+
+      L.polyline(shapeCoords, {
+        color: '#2563eb',
+        weight: 2.5,
+        opacity: 0.9,
+      }).addTo(layerGroup!);
+
+      // Turnpoint markers
+      tp.forEach((p: { x: number; y: number; r: number }, i: number) => {
+        L.circleMarker([p.y, p.x], {
+          radius: 7,
+          color: '#fff',
+          weight: 2,
+          fillColor: '#ef4444',
+          fillOpacity: 1,
+        })
+          .bindPopup(`<strong>TP ${i + 1}</strong><br>${p.y.toFixed(5)}, ${p.x.toFixed(5)}`)
+          .addTo(layerGroup!);
+      });
+    }
+
+    // Triangle closing points
+    if (cp?.in) {
+      L.circleMarker([cp.in.y, cp.in.x], {
+        radius: 5,
+        color: '#fff',
+        weight: 2,
+        fillColor: '#22c55e',
+        fillOpacity: 1,
+      })
+        .bindPopup(`<strong>Close in</strong><br>${cp.in.y.toFixed(5)}, ${cp.in.x.toFixed(5)}`)
+        .addTo(layerGroup!);
+
+      L.circleMarker([cp.out.y, cp.out.x], {
+        radius: 5,
+        color: '#fff',
+        weight: 2,
+        fillColor: '#f97316',
+        fillOpacity: 1,
+      })
+        .bindPopup(`<strong>Close out</strong><br>${cp.out.y.toFixed(5)}, ${cp.out.x.toFixed(5)}`)
+        .addTo(layerGroup!);
+
+      // Closing distance line
+      L.polyline(
+        [
+          [cp.in.y, cp.in.x],
+          [cp.out.y, cp.out.x],
+        ],
+        { color: '#f97316', weight: 1.5, dashArray: '6 4' }
+      ).addTo(layerGroup!);
+    }
+
+    // Free distance start/finish points
+    if (ep?.start) {
+      L.circleMarker([ep.start.y, ep.start.x], {
+        radius: 5,
+        color: '#fff',
+        weight: 2,
+        fillColor: '#22c55e',
+        fillOpacity: 1,
+      })
+        .bindPopup(`<strong>Start</strong><br>${ep.start.y.toFixed(5)}, ${ep.start.x.toFixed(5)}`)
+        .addTo(layerGroup!);
+
+      L.circleMarker([ep.finish.y, ep.finish.x], {
+        radius: 5,
+        color: '#fff',
+        weight: 2,
+        fillColor: '#f97316',
+        fillOpacity: 1,
+      })
+        .bindPopup(`<strong>Finish</strong><br>${ep.finish.y.toFixed(5)}, ${ep.finish.x.toFixed(5)}`)
+        .addTo(layerGroup!);
+    }
+
+    // Fit map to content
+    const allBounds: L.LatLngExpression[] = [];
+    if (tp?.length) tp.forEach((p: { x: number; y: number }) => allBounds.push([p.y, p.x]));
+    if (cp?.in) {
+      allBounds.push([cp.in.y, cp.in.x]);
+      allBounds.push([cp.out.y, cp.out.x]);
+    }
+    if (ep?.start) {
+      allBounds.push([ep.start.y, ep.start.x]);
+      allBounds.push([ep.finish.y, ep.finish.x]);
+    }
+
+    if (allBounds.length >= 2) {
+      map!.fitBounds(L.latLngBounds(allBounds), { padding: [40, 40] });
+    }
+
+    // Fix tile rendering after container becomes visible
+    setTimeout(() => map!.invalidateSize(), 100);
+  }
+
+  // Listen for events from IgcScorer
+  document.addEventListener('igc-score-result', ((e: CustomEvent) => {
+    displayFlight(e.detail);
+  }) as EventListener);
+</script>
