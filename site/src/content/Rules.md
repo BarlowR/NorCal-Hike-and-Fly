@@ -42,4 +42,4 @@ Different types of triangles are awarded a multiplier.
 * Closed FAI triangle are given a 1.6 multiplier
 
 #### Hike and Fly with Friends Bonus
-An additional multiplier of 1.5 is used if at least four tracklogs are submitted for a single day that start at the same place at the same time. I.E. go hike and fly with your friends. 
+An additional multiplier of 1.5 is used if at least four tracklogs are submitted for a single day that start at the same place at the same time. 
