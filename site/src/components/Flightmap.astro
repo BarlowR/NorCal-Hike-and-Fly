@@ -32,8 +32,10 @@
   }
 
   function displayFlight(detail: any) {
-    const { flight, result } = detail;
-    const { scoreInfo, opt } = result;
+    const flight = detail.flight;
+    const dist = detail.groundDist;
+    console.log(dist);
+    const { scoreInfo, opt } = detail.best;
     const { tp, cp, ep } = scoreInfo;
 
     mapContainer.classList.remove('hidden');
@@ -58,11 +60,6 @@
       const segments: Segment[] = [];
       let currentState: Segment['state'] | null = null;
       let currentPoints: L.LatLngExpression[] = [];
-
-      for (const fix of flight.filtered) {
-         // hma is already computed by the library's analyze()
-        fix.onGround = (!fix.stateFlight) && fix.hma < 2.5; // km/h threshold
-      }
 
       for (const fix of fixes as Fix[]) {
         const state: Segment['state'] = fix.onGround
@@ -90,7 +87,7 @@
       if (hasStateInfo) {
         const styleMap = {
           ground: { color: '#ef4444', weight: 10, opacity: 1 },
-          flight: { color: '#6b7280', weight: 6, opacity: 1 },
+          flight: { color: '#0356fc', weight: 6, opacity: 1 },
           unknown: { color: '#f59e0b', weight: 8, opacity: 1 },
         };
         for (const seg of segments) {
@@ -102,7 +99,7 @@
           (fix: Fix) => [fix.latitude, fix.longitude] as L.LatLngExpression
         );
         L.polyline(trackCoords, {
-          color: '#6b7280',
+          color: '#0356fc',
           weight: 4,
           opacity: 0.5,
         }).addTo(layerGroup!);
@@ -138,6 +135,7 @@
       });
     }
 
+    
     // Triangle closing points
     if (cp?.in) {
       L.circleMarker([cp.in.y, cp.in.x], {

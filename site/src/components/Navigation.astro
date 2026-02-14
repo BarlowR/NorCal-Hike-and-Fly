@@ -3,8 +3,6 @@ import { Content as Overview } from '../content/Overview.md';
 import { Content as Rules } from '../content/Rules.md'; 
 import About from '../content/About.astro'; 
 import Scoring from '../content/Scoring.astro'; 
-import Flightmap from '../content/Flightmap.astro';
-
 // ComponentToggle.astro
 const tabs = [
   { id: 'overview', label: 'Overview' },
@@ -42,7 +40,6 @@ const tabs = [
   
   <div class="tab-content hidden" data-content="scoring">
     <Scoring />
-    <Flightmap />
   </div>
 </div>
 
