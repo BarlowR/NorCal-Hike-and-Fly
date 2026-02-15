@@ -77,7 +77,7 @@
     console.log(result.best.scoreInfo);
     addResult('Hiking Distance', result.groundDist?.toFixed(2) + ' km');
     addResult('Triangle Perimeter', result.best.scoreInfo?.distance?.toFixed(2) + ' km');
-    addResult('Closing Penalty', result.best.scoreInfo?.penalty.toFixed(2) + ' km');
+    addResult('Closing Distance', result.best.scoreInfo?.penalty.toFixed(2) + ' km');
     let type = result.closed ? "Closed " : "Open "
     type += result.best.opt?.scoring.code.toUpperCase(); 
     addResult('Type', type ?? '—');
