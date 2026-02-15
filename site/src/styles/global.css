@@ -6,6 +6,9 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    overflow-y: scroll;
+  }
   h1 {
     @apply text-2xl py-5 font-bold text-gray-800 md:text-3xl md:py-3;
   }
