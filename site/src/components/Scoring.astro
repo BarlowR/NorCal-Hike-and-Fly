@@ -74,7 +74,6 @@
 
     // Display results
     resultsList.innerHTML = '';
-    console.log(result.best.scoreInfo);
     addResult('Hiking Distance', result.groundDist?.toFixed(2) + ' km');
     addResult('Triangle Perimeter', result.best.scoreInfo?.distance?.toFixed(2) + ' km');
     addResult('Closing Distance', result.best.scoreInfo?.penalty.toFixed(2) + ' km');
