@@ -2,12 +2,13 @@
 import { Content as Overview } from '../content/Overview.md'; 
 import { Content as Rules } from '../content/Rules.md'; 
 import About from '../content/About.astro'; 
-
+import Scoring from '../content/Scoring.astro'; 
 // ComponentToggle.astro
 const tabs = [
   { id: 'overview', label: 'Overview' },
   { id: 'rules', label: 'Proposed Rules' },
-  { id: 'about', label: 'About' }
+  { id: 'about', label: 'About' }, 
+  { id: 'scoring', label: 'Scoring' }
 ];
 ---
 
@@ -35,6 +36,10 @@ const tabs = [
   
   <div class="tab-content hidden" data-content="about">
     <About />
+  </div>
+  
+  <div class="tab-content hidden" data-content="scoring">
+    <Scoring />
   </div>
 </div>
 

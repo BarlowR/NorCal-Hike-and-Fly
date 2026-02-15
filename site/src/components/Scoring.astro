@@ -1,0 +1,141 @@
+---
+// IgcScorer.astro
+// Requires: npm install igc-xc-score igc-parser
+---
+
+<div class="flex flex-col gap-4 w-full">
+  <div id="status" class="text-center text-sm text-gray-500">
+    Provisional scoring tool
+  </div>
+
+  <label
+    id="drop-zone"
+    class="flex flex-col items-center justify-center gap-2 p-8 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+    </svg>
+    <span class="text-sm text-gray-600">Drop an IGC file or click to browse</span>
+    <input
+      id="igc-input"
+      type="file"
+      accept=".igc"
+      class="hidden"
+    />
+  </label>
+
+  <div id="status" class="text-center text-sm text-gray-500 hidden"></div>
+
+  <div id="results" class="hidden rounded-lg border border-gray-200 bg-white p-4">
+    <h3 class="font-semibold text-lg mb-3">Score Results</h3>
+    <dl id="results-list" class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+    </dl>
+  </div>
+</div>
+
+<script>
+  import { score } from "../ts/hf_scoring.ts"
+
+  const input = document.getElementById('igc-input') as HTMLInputElement;
+  const dropZone = document.getElementById('drop-zone')!;
+  const status = document.getElementById('status')!;
+  const results = document.getElementById('results')!;
+  const resultsList = document.getElementById('results-list')!;
+
+  function showStatus(msg: string, isError = false) {
+    status.textContent = msg;
+    status.classList.remove('hidden', 'text-red-600', 'text-gray-500');
+    status.classList.add(isError ? 'text-red-600' : 'text-gray-500');
+  }
+  function removeStatus() {
+    status.classList.add('hidden', 'text-red-600', 'text-gray-500');
+  }
+
+  function addResult(label: string, value: string) {
+    const dt = document.createElement('dt');
+    dt.className = 'text-gray-500';
+    dt.textContent = label;
+    const dd = document.createElement('dd');
+    dd.className = 'font-medium';
+    dd.textContent = value;
+    resultsList.append(dt, dd);
+  }
+
+  async function scoreFile(contents: string){
+    showStatus('Scoring flight…');
+
+    const result = await score(contents);
+
+
+    if (!result){
+      showStatus('Error scoring file.');
+      return;
+    }
+
+    // Display results
+    resultsList.innerHTML = '';
+    console.log(result.best.scoreInfo);
+    addResult('Hiking Distance', result.groundDist?.toFixed(2) + ' km');
+    addResult('Triangle Perimeter', result.best.scoreInfo?.distance?.toFixed(2) + ' km');
+    addResult('Closing Distance', result.best.scoreInfo?.penalty.toFixed(2) + ' km');
+    let type = result.closed ? "Closed " : "Open "
+    type += result.best.opt?.scoring.code.toUpperCase(); 
+    addResult('Type', type ?? '—');
+    addResult('Score', result.score.toFixed(2) ?? '—');
+    if (result.filteredByTime){
+      addResult('', "Filtered By Time");
+    }
+    
+
+    // if (result.best.scoreInfo?.tp) {
+    //   result.best.scoreInfo.tp.forEach((tp: { x: number; y: number }, i: number) => {
+    //     addResult(`TP ${i + 1}`, `${tp.y.toFixed(5)}, ${tp.x.toFixed(5)}`);
+    //   });
+    // }
+
+    // if (result.best.scoreInfo?.cp) {
+    //   addResult(`CP 1`, `${result.best.scoreInfo?.cp?.in.x.toFixed(5)}, ${result.best.scoreInfo?.cp?.in.x.toFixed(5)}`)
+    //   addResult(`CP 2`, `${result.best.scoreInfo?.cp?.in.x.toFixed(5)}, ${result.best.scoreInfo?.cp?.in.x.toFixed(5)}`)
+    // }
+
+    results.classList.remove('hidden');
+    removeStatus();
+    
+    // Dispatch event for FlightMap (or any other listener)
+    document.dispatchEvent(
+      new CustomEvent('igc-score-result', {
+        detail: result,
+      })
+    );
+  }
+
+  function handleFile(file: File) {
+    if (!file.name.toLowerCase().endsWith('.igc')) {
+      showStatus('Please select an .igc file.', true);
+      return;
+    }
+    showStatus('Reading file…');
+    const reader = new FileReader();
+    reader.onload = () => scoreFile(reader.result as string);
+    reader.onerror = () => showStatus('Failed to read file.', true);
+    reader.readAsText(file);
+  }
+
+  input.addEventListener('change', () => {
+    if (input.files?.[0]) handleFile(input.files[0]);
+  });
+
+  // Drag and drop
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('border-blue-500', 'bg-blue-50');
+  });
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+  });
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+    if (e.dataTransfer?.files?.[0]) handleFile(e.dataTransfer.files[0]);
+  });
+</script>
