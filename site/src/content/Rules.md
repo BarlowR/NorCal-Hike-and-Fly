@@ -1,14 +1,14 @@
 ### Guiding Principles
-* A 200km flight is roughly equivalent to running 100km on the ground
-* Triangles are cool
+* A 200km flight is roughly equivalent to running 100km on the ground.
+* Triangles are cool.
 * If there is time in the day and you're on the ground, the best direction to go is back towards your car.
-* Hike and Fly is better with friends
+* Hike and Fly is better with friends.
 
 ### Scoring
 
 #### Tracklog Submission for Scoring
 
-All scoring is done using .igc tracklogs. These tracklogs must contain a single track for the whole day of scoring. Tracks must start after 9am, and must conclude by 5pm. If a track begins before 9am or ends after 5pm, it will be truncated to be within these bounds. 
+All scoring is done using .igc tracklogs. These tracklogs must contain a single track for the whole day of scoring. Tracks must start after 8am, and must conclude by 5pm. If a track begins before 8am or ends after 5pm, it will be truncated to be within these bounds. 
 
 A method of submitting tracklogs on this site will be provided.
 

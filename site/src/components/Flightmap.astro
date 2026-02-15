@@ -2,9 +2,15 @@
 // FlightMap.astro
 // Requires: npm install leaflet
 // Requires: npm install -D @types/leaflet (for TypeScript)
+const hikingColor = '#8856fc';
+const flyingColor = '#001bff';
 ---
 
 <div id="flight-map" class="w-full h-96 rounded-lg border border-gray-200 bg-gray-100 hidden"></div>
+<div id="flight-map-label" data-hikingc={hikingColor} data-flyingc={flyingColor} class="w-full text-center hidden"> 
+  <span class = "font-bold" style={`color: ${hikingColor}`}>   Hiking   </p>
+  <span class = "font-bold" style={`color: ${flyingColor}`}>   Flying   </p>
+
 
 <link
   rel="stylesheet"
@@ -13,10 +19,14 @@
   crossorigin=""
 />
 
-<script>
+<script >
   import L from 'leaflet';
 
   const mapContainer = document.getElementById('flight-map')!;
+  const mapLabel = document.getElementById('flight-map-label')!;
+  const hikingColor = mapLabel.dataset.hikingc;
+  const flyingColor = mapLabel.dataset.flyingc;
+
   let map: L.Map | null = null;
   let layerGroup: L.LayerGroup | null = null;
 
@@ -39,10 +49,11 @@
     const { tp, cp, ep } = scoreInfo;
 
     mapContainer.classList.remove('hidden');
+    mapLabel.classList.remove('hidden');
     initMap();
     layerGroup!.clearLayers();
 
-    // Draw the flight track, coloring ground segments red
+    // Draw the flight track
     const fixes = flight?.filtered || flight?.fixes;
     if (fixes?.length) {
       type Fix = {
@@ -62,9 +73,7 @@
       let currentPoints: L.LatLngExpression[] = [];
 
       for (const fix of fixes as Fix[]) {
-        const state: Segment['state'] = fix.onGround
-          ? 'ground'
-          : 'flight';
+        const state: Segment['state'] = fix.onGround ? 'ground' : 'flight';
 
         if (state !== currentState) {
           if (currentPoints.length > 0) {
@@ -86,11 +95,16 @@
 
       if (hasStateInfo) {
         const styleMap = {
-          ground: { color: '#ef4444', weight: 10, opacity: 1 },
-          flight: { color: '#0356fc', weight: 6, opacity: 1 },
+          flight: { color: flyingColor, weight: 6, opacity: 1 },
+          ground: { color: hikingColor, weight: 10, opacity: 1 },
           unknown: { color: '#f59e0b', weight: 8, opacity: 1 },
         };
-        for (const seg of segments) {
+        // Sort: ground first, then unknown, then flight (so flight renders on top)
+        const sorted = [...segments].sort((a, b) => {
+          const order = { ground: 0, unknown: 1, flight: 2 };
+          return order[a.state] - order[b.state];
+        });
+        for (const seg of sorted)  {
           L.polyline(seg.points, styleMap[seg.state]).addTo(layerGroup!);
         }
       } else {
@@ -99,7 +113,7 @@
           (fix: Fix) => [fix.latitude, fix.longitude] as L.LatLngExpression
         );
         L.polyline(trackCoords, {
-          color: '#0356fc',
+          color: hikingColor,
           weight: 4,
           opacity: 0.5,
         }).addTo(layerGroup!);
@@ -116,7 +130,7 @@
       const shapeCoords = cp?.in ? [...tpCoords, tpCoords[0]] : tpCoords;
 
       L.polyline(shapeCoords, {
-        color: '#2563eb',
+        color: '#000000',
         weight: 2.5,
         opacity: 0.9,
       }).addTo(layerGroup!);
@@ -127,7 +141,7 @@
           radius: 7,
           color: '#fff',
           weight: 2,
-          fillColor: '#ef4444',
+          fillColor: '#22c55e',
           fillOpacity: 1,
         })
           .bindPopup(`<strong>TP ${i + 1}</strong><br>${p.y.toFixed(5)}, ${p.x.toFixed(5)}`)
@@ -142,7 +156,7 @@
         radius: 5,
         color: '#fff',
         weight: 2,
-        fillColor: '#22c55e',
+        fillColor: '#fd0500',
         fillOpacity: 1,
       })
         .bindPopup(`<strong>Close in</strong><br>${cp.in.y.toFixed(5)}, ${cp.in.x.toFixed(5)}`)
@@ -152,7 +166,7 @@
         radius: 5,
         color: '#fff',
         weight: 2,
-        fillColor: '#f97316',
+        fillColor: '#fd0500',
         fillOpacity: 1,
       })
         .bindPopup(`<strong>Close out</strong><br>${cp.out.y.toFixed(5)}, ${cp.out.x.toFixed(5)}`)
@@ -166,29 +180,6 @@
         ],
         { color: '#f97316', weight: 1.5, dashArray: '6 4' }
       ).addTo(layerGroup!);
-    }
-
-    // Free distance start/finish points
-    if (ep?.start) {
-      L.circleMarker([ep.start.y, ep.start.x], {
-        radius: 5,
-        color: '#fff',
-        weight: 2,
-        fillColor: '#22c55e',
-        fillOpacity: 1,
-      })
-        .bindPopup(`<strong>Start</strong><br>${ep.start.y.toFixed(5)}, ${ep.start.x.toFixed(5)}`)
-        .addTo(layerGroup!);
-
-      L.circleMarker([ep.finish.y, ep.finish.x], {
-        radius: 5,
-        color: '#fff',
-        weight: 2,
-        fillColor: '#f97316',
-        fillOpacity: 1,
-      })
-        .bindPopup(`<strong>Finish</strong><br>${ep.finish.y.toFixed(5)}, ${ep.finish.x.toFixed(5)}`)
-        .addTo(layerGroup!);
     }
 
     // Fit map to content
