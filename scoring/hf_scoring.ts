@@ -1,0 +1,1 @@
+./site/src/ts/hf_scoring.ts
