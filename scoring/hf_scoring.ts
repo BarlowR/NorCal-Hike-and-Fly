@@ -1,1 +1,1 @@
-./site/src/ts/hf_scoring.ts
+../site/src/ts/hf_scoring.ts

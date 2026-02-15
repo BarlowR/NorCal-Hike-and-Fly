@@ -1,1 +1,1 @@
-./site/src/content/Rules.md
+../site/src/content/Rules.md
