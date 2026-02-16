@@ -1,0 +1,11 @@
+name = "tracklog-upload"
+main = "upload-worker.js"
+compatibility_date = "2025-01-01"
+
+[[r2_buckets]]
+binding = "TRACKLOGS"
+bucket_name = "tracklogs"
+
+[[kv_namespaces]]
+binding = "RATE_KV"
+id = "458e2d05f1c241bc9410c2d9f33a239a"
