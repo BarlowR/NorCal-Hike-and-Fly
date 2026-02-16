@@ -38,21 +38,24 @@ def check(label: str, expected: int, response: requests.Response) -> bool:
     return ok
 
 
-def run_upload_tests(url: str, igc_path: Path) -> int:
+def run_upload_tests(url: str, igc_path: Path, user: str, passphrase: str) -> int:
     passed = 0
     failed = 0
+
+    valid_qs = f"user_id={user}&passphrase={passphrase}"
 
     txt_path = Path(tempfile.mktemp(suffix=".txt"))
     txt_path.write_text("not an igc file")
 
     print(f"=== Upload Worker Tests ===")
     print(f"    {url}")
+    print(f"    user={user}")
     print()
 
     # 1. Valid upload
     print("1. Valid IGC upload")
     with open(igc_path, "rb") as f:
-        r = requests.post(f"{url}/upload?user_id=test-user", files={"file": (igc_path.name, f)})
+        r = requests.post(f"{url}/upload?{valid_qs}", files={"file": (igc_path.name, f)})
     if check("should return 200", 200, r):
         passed += 1
     else:
@@ -61,31 +64,58 @@ def run_upload_tests(url: str, igc_path: Path) -> int:
     # 2. Missing user_id
     print("2. Missing user_id")
     with open(igc_path, "rb") as f:
-        r = requests.post(f"{url}/upload", files={"file": (igc_path.name, f)})
+        r = requests.post(f"{url}/upload?passphrase={passphrase}", files={"file": (igc_path.name, f)})
     if check("should return 400", 400, r):
         passed += 1
     else:
         failed += 1
 
-    # 3. Wrong file type
-    print("3. Non-IGC file")
+    # 3. Missing passphrase
+    print("3. Missing passphrase")
+    with open(igc_path, "rb") as f:
+        r = requests.post(f"{url}/upload?user_id={user}", files={"file": (igc_path.name, f)})
+    if check("should return 400", 400, r):
+        passed += 1
+    else:
+        failed += 1
+
+    # 4. Wrong passphrase
+    print("4. Wrong passphrase")
+    with open(igc_path, "rb") as f:
+        r = requests.post(f"{url}/upload?user_id={user}&passphrase=wrong", files={"file": (igc_path.name, f)})
+    if check("should return 401", 401, r):
+        passed += 1
+    else:
+        failed += 1
+
+    # 5. Non-existent user
+    print("5. Non-existent user")
+    with open(igc_path, "rb") as f:
+        r = requests.post(f"{url}/upload?user_id=nobody&passphrase=wrong", files={"file": (igc_path.name, f)})
+    if check("should return 401", 401, r):
+        passed += 1
+    else:
+        failed += 1
+
+    # 6. Wrong file type
+    print("6. Non-IGC file")
     with open(txt_path, "rb") as f:
-        r = requests.post(f"{url}/upload?user_id=test-user", files={"file": (txt_path.name, f)})
+        r = requests.post(f"{url}/upload?{valid_qs}", files={"file": (txt_path.name, f)})
     if check("should return 400", 400, r):
         passed += 1
     else:
         failed += 1
 
-    # 4. Wrong HTTP method
-    print("4. GET instead of POST")
-    r = requests.get(f"{url}/upload?user_id=test-user")
+    # 7. Wrong HTTP method
+    print("7. GET instead of POST")
+    r = requests.get(f"{url}/upload?{valid_qs}")
     if check("should return 405", 405, r):
         passed += 1
     else:
         failed += 1
 
-    # 5. Wrong path
-    print("5. Wrong endpoint")
+    # 8. Wrong path
+    print("8. Wrong endpoint")
     r = requests.post(f"{url}/notreal")
     if check("should return 404", 404, r):
         passed += 1
@@ -98,7 +128,7 @@ def run_upload_tests(url: str, igc_path: Path) -> int:
     return failed
 
 
-def run_rate_limit_test(url: str, igc_path: Path, limit: int, burst: int) -> int:
+def run_rate_limit_test(url: str, igc_path: Path, limit: int, burst: int, user: str, passphrase: str) -> int:
     print(f"=== Rate Limit Test ===")
     print(f"    {url}")
     print(f"    sending {burst} requests (limit expected at ~{limit})")
@@ -108,7 +138,7 @@ def run_rate_limit_test(url: str, igc_path: Path, limit: int, burst: int) -> int
     for i in range(1, burst + 1):
         with open(igc_path, "rb") as f:
             r = requests.post(
-                f"{url}/upload?user_id=ratelimit-test",
+                f"{url}/upload?user_id={user}&passphrase={passphrase}",
                 files={"file": (igc_path.name, f)},
             )
         results.append(r.status_code)
@@ -139,6 +169,8 @@ def main():
     parser = argparse.ArgumentParser(description="Test the tracklog upload Worker")
     parser.add_argument("--worker_url", help="Worker base URL")
     parser.add_argument("--igc", help="Path to a sample .igc file (optional)")
+    parser.add_argument("--user", default="test-user", help="Valid user_id for auth tests (default: test-user)")
+    parser.add_argument("--passphrase", default="test-user", help="Valid passphrase for auth tests (default: test-user)")
     parser.add_argument("--rate-limit", action="store_true", help="Run rate limiting test instead of upload tests")
     parser.add_argument("--limit", type=int, default=10, help="Expected rate limit per window (default: 10)")
     parser.add_argument("--burst", type=int, default=15, help="Total requests to send (default: 15)")
@@ -162,9 +194,9 @@ def main():
         cleanup_igc = True
 
     if args.rate_limit:
-        failures = run_rate_limit_test(url, igc_path, args.limit, args.burst)
+        failures = run_rate_limit_test(url, igc_path, args.limit, args.burst, args.user, args.passphrase)
     else:
-        failures = run_upload_tests(url, igc_path)
+        failures = run_upload_tests(url, igc_path, args.user, args.passphrase)
 
     if cleanup_igc:
         igc_path.unlink(missing_ok=True)

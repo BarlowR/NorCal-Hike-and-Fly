@@ -49,10 +49,20 @@ export default {
         return jsonResponse({ error: "Invalid or missing user_id" }, 400);
       }
 
-      // Optional: check a simple API key for basic auth
-      const apiKey = request.headers.get("X-API-Key");
-      if (env.UPLOAD_API_KEY && apiKey !== env.UPLOAD_API_KEY) {
-        return jsonResponse({ error: "Unauthorized" }, 401);
+      const passphrase = url.searchParams.get("passphrase");
+      if (!passphrase) {
+        return jsonResponse({ error: "Missing passphrase" }, 400);
+      }
+
+      // Authenticate against users.json in R2
+      const usersObj = await env.TRACKLOGS.get("users.json");
+      if (!usersObj) {
+        console.error("users.json not found in R2");
+        return jsonResponse({ error: "Internal server error" }, 500);
+      }
+      const users = await usersObj.json();
+      if (!users[userId] || users[userId] !== passphrase) {
+        return jsonResponse({ error: "Invalid username or passphrase" }, 401);
       }
 
       // Read the uploaded file
@@ -118,6 +128,6 @@ function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, X-API-Key",
+    "Access-Control-Allow-Headers": "Content-Type",
   };
 }

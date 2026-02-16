@@ -31,6 +31,37 @@
     <dl id="results-list" class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
     </dl>
   </div>
+
+  <div id="upload-section" class="flex flex-col gap-3 pb-8" style="display:none">
+    <div class="flex flex-col gap-1">
+      <label for="user-id-input" class="text-sm font-medium text-gray-700">Your Name / ID</label>
+      <input
+        id="user-id-input"
+        type="text"
+        placeholder="e.g. john_doe"
+        pattern="^[a-zA-Z0-9_-]{1,64}$"
+        class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+      />
+      <span id="user-id-error" class="hidden text-xs text-red-600">Letters, numbers, hyphens, and underscores only (1–64 chars)</span>
+    </div>
+    <div class="flex flex-col gap-1">
+      <label for="passphrase-input" class="text-sm font-medium text-gray-700">Passphrase</label>
+      <input
+        id="passphrase-input"
+        type="password"
+        placeholder="Enter your passphrase"
+        class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+      />
+    </div>
+    <button
+      id="upload-btn"
+      disabled
+      class="self-start rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+    >
+      Upload Tracklog
+    </button>
+    <div id="upload-status" class="hidden text-sm"></div>
+  </div>
 </div>
 
 <script>
@@ -41,6 +72,24 @@
   const status = document.getElementById('status')!;
   const results = document.getElementById('results')!;
   const resultsList = document.getElementById('results-list')!;
+  const uploadSection = document.getElementById('upload-section')!;
+  const userIdInput = document.getElementById('user-id-input') as HTMLInputElement;
+  const userIdError = document.getElementById('user-id-error')!;
+  const passphraseInput = document.getElementById('passphrase-input') as HTMLInputElement;
+  const uploadBtn = document.getElementById('upload-btn') as HTMLButtonElement;
+  const uploadStatus = document.getElementById('upload-status')!;
+
+  const USER_ID_RE = /^[a-zA-Z0-9_-]{1,64}$/;
+  let currentFile: File | null = null;
+
+  function updateUploadBtn() {
+    const validId = USER_ID_RE.test(userIdInput.value);
+    userIdError.classList.toggle('hidden', validId || userIdInput.value === '');
+    uploadBtn.disabled = !(validId && passphraseInput.value.length > 0);
+  }
+
+  userIdInput.addEventListener('input', updateUploadBtn);
+  passphraseInput.addEventListener('input', updateUploadBtn);
 
   function showStatus(msg: string, isError = false) {
     status.textContent = msg;
@@ -98,8 +147,10 @@
     // }
 
     results.classList.remove('hidden');
+    uploadSection.style.display = '';
+    updateUploadBtn();
     removeStatus();
-    
+
     // Dispatch event for FlightMap (or any other listener)
     document.dispatchEvent(
       new CustomEvent('igc-score-result', {
@@ -113,6 +164,12 @@
       showStatus('Please select an .igc file.', true);
       return;
     }
+    currentFile = file;
+    // Reset upload UI for new file
+    updateUploadBtn();
+    uploadBtn.textContent = 'Upload Tracklog';
+    uploadStatus.classList.add('hidden');
+
     showStatus('Reading file…');
     const reader = new FileReader();
     reader.onload = () => scoreFile(reader.result as string);
@@ -136,5 +193,40 @@
     e.preventDefault();
     dropZone.classList.remove('border-blue-500', 'bg-blue-50');
     if (e.dataTransfer?.files?.[0]) handleFile(e.dataTransfer.files[0]);
+  });
+
+  uploadBtn.addEventListener('click', async () => {
+    if (!currentFile || !USER_ID_RE.test(userIdInput.value) || !passphraseInput.value) return;
+
+    uploadBtn.disabled = true;
+    uploadBtn.textContent = 'Uploading…';
+    uploadStatus.classList.add('hidden');
+
+    try {
+      const form = new FormData();
+      form.append('file', currentFile);
+
+      const url = `https://tracklog-upload.norcalhf.workers.dev/upload?user_id=${encodeURIComponent(userIdInput.value)}&passphrase=${encodeURIComponent(passphraseInput.value)}`;
+      const res = await fetch(url, { method: 'POST', body: form });
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error('Invalid username or passphrase');
+        }
+        const text = await res.text();
+        throw new Error(text || `Upload failed (${res.status})`);
+      }
+
+      uploadBtn.textContent = 'Uploaded';
+      uploadStatus.textContent = 'Tracklog uploaded successfully. Scores will post tomorrow.';
+      uploadStatus.className = 'text-sm text-green-600';
+    } catch (err: any) {
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = 'Upload Tracklog';
+      uploadStatus.textContent = `Upload failed: ${err.message}`;
+      uploadStatus.className = 'text-sm text-red-600';
+    }
+
+    uploadStatus.classList.remove('hidden');
   });
 </script>
