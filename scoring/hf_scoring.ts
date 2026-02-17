@@ -28,6 +28,11 @@ async function score(igc_file: string) {
     const timeZone = await getTimezone(lat, lon);
 
     const initialLength = flight.fixes.length;
+    console.log(`  Timezone: ${timeZone}`);
+    console.log(`  Total fixes: ${initialLength}`);
+    const firstFixDate = new Date(flight.fixes[0].timestamp);
+    console.log(`  First fix UTC: ${firstFixDate.toISOString()}`);
+
     // Filter fixes to 8am - 5pm local time
     const hourFormatter = new Intl.DateTimeFormat('en-US', {
       timeZone,
@@ -42,6 +47,7 @@ async function score(igc_file: string) {
     const filteredLength = flight.fixes.length;
     let filteredByTime = false;
     if (filteredLength < initialLength) filteredByTime = true;
+    console.log(`  Fixes after time filter: ${filteredLength} (removed ${initialLength - filteredLength})`);
 
     const triangleScoringRules = (scoring as any).XContest
       .filter((r: any) => r.code === 'tri' || r.code === 'fai')
@@ -70,6 +76,9 @@ async function score(igc_file: string) {
     const penalty = best.scoreInfo?.penalty ?? 0;
     let closed = (triangleDist * 0.2) > penalty;
 
+    const onGroundCount = fixes.filter((f: any) => f.onGround).length;
+    console.log(`  Filtered fixes: ${fixes.length}, onGround=true: ${onGroundCount}`);
+
     let groundDist = 0;
     let filter_window = 5;
     for (let i = filter_window; i < fixes.length - filter_window; i+=filter_window) {
@@ -88,6 +97,9 @@ async function score(igc_file: string) {
     score += (groundDist);
     // Triangle Multiplier
     score *= best.opt.scoring.multiplier
+
+    console.log(`  Scoring: tri=${triangleDist.toFixed(2)} penalty=${penalty.toFixed(2)} ground=${groundDist.toFixed(2)} mult=${best.opt.scoring.multiplier} closed=${closed}`);
+    console.log(`  Final score: ${score.toFixed(2)} (optimal=${best.optimal}, cycles=${cycles})`);
 
     return {best: best, flight: flight, groundDist: groundDist, closed : closed, score : score, filteredByTime : filteredByTime}
   } catch (e: any) {
