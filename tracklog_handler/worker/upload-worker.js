@@ -61,7 +61,8 @@ export default {
         return jsonResponse({ error: "Internal server error" }, 500);
       }
       const users = await usersObj.json();
-      if (!users[userId] || users[userId] !== passphrase) {
+      const userRecord = users[userId];
+      if (!userRecord || userRecord.passphrase !== passphrase) {
         return jsonResponse({ error: "Invalid username or passphrase" }, 401);
       }
 
