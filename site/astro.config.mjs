@@ -9,6 +9,9 @@ export default defineConfig({
     define: {
       global: 'globalThis',
     },
+    resolve: {
+      preserveSymlinks: true,
+    },
   },
   site: 'https://norcalhf.com',
   integrations: [sitemap()],
