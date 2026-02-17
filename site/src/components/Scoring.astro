@@ -19,7 +19,7 @@
     <input
       id="igc-input"
       type="file"
-      accept=".igc"
+      accept=".igc,.IGC"
       class="hidden"
     />
   </label>
@@ -121,6 +121,12 @@
       return;
     }
 
+    // Check flight age
+    const firstFix = result.flight.fixes[0];
+    const flightDate = new Date(firstFix.timestamp);
+    const daysSince = (Date.now() - flightDate.getTime()) / (1000 * 60 * 60 * 24);
+    const tooOld = daysSince > 7;
+
     // Display results
     resultsList.innerHTML = '';
     addResult('Hiking Distance', result.groundDist?.toFixed(2) + ' km');
@@ -133,21 +139,16 @@
     if (result.filteredByTime){
       addResult('', "Filtered By Time");
     }
-    
-
-    // if (result.best.scoreInfo?.tp) {
-    //   result.best.scoreInfo.tp.forEach((tp: { x: number; y: number }, i: number) => {
-    //     addResult(`TP ${i + 1}`, `${tp.y.toFixed(5)}, ${tp.x.toFixed(5)}`);
-    //   });
-    // }
-
-    // if (result.best.scoreInfo?.cp) {
-    //   addResult(`CP 1`, `${result.best.scoreInfo?.cp?.in.x.toFixed(5)}, ${result.best.scoreInfo?.cp?.in.x.toFixed(5)}`)
-    //   addResult(`CP 2`, `${result.best.scoreInfo?.cp?.in.x.toFixed(5)}, ${result.best.scoreInfo?.cp?.in.x.toFixed(5)}`)
-    // }
+    if (tooOld) {
+      addResult('', `Flight is ${Math.floor(daysSince)} days old — uploads must be within 7 days`);
+    }
 
     results.classList.remove('hidden');
-    uploadSection.style.display = '';
+    if (tooOld) {
+      uploadSection.style.display = 'none';
+    } else {
+      uploadSection.style.display = '';
+    }
     updateUploadBtn();
     removeStatus();
 
