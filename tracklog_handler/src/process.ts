@@ -7,7 +7,6 @@ interface FlightEntry {
   score: number;
   breakdown: ScoreResult["breakdown"];
   distance_km: number;
-  elevation_gain_m: number;
   duration_s: number;
   track_file: string;
 }
@@ -19,7 +18,6 @@ interface UserData {
     total_score: number;
     total_km: number;
     total_flights: number;
-    total_elevation_m: number;
     avg_score: number;
     best_score: number;
   };
@@ -43,11 +41,11 @@ interface Leaderboard {
 
 function computeStats(flights: FlightEntry[]): UserData["stats"] {
   const scores = flights.map((f) => f.score);
+  const top4 = [...scores].sort((a, b) => b - a).slice(0, 4);
   return {
-    total_score: scores.reduce((a, b) => a + b, 0),
+    total_score: top4.reduce((a, b) => a + b, 0),
     total_km: flights.reduce((a, f) => a + f.distance_km, 0),
     total_flights: flights.length,
-    total_elevation_m: flights.reduce((a, f) => a + f.elevation_gain_m, 0),
     avg_score: flights.length > 0 ? scores.reduce((a, b) => a + b, 0) / flights.length : 0,
     best_score: flights.length > 0 ? Math.max(...scores) : 0,
   };
@@ -65,7 +63,6 @@ async function getExistingUserData(userId: string): Promise<UserData> {
         total_score: 0,
         total_km: 0,
         total_flights: 0,
-        total_elevation_m: 0,
         avg_score: 0,
         best_score: 0,
       },
@@ -124,7 +121,6 @@ async function main() {
         score: result.score,
         breakdown: result.breakdown,
         distance_km: result.distance_km,
-        elevation_gain_m: result.elevation_gain_m,
         duration_s: result.duration_s,
         track_file: trackKey,
       };
