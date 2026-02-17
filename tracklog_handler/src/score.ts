@@ -18,7 +18,6 @@ export interface ScoreResult {
   date: string;
   duration_s: number;
   distance_km: number;
-  elevation_gain_m: number;
 }
 
 async function getTimezone(lat: number, lon: number): Promise<string> {
@@ -106,8 +105,7 @@ export async function scoreIgc(igcContent: string): Promise<ScoreResult> {
   // Date from first fix
   const firstFix = flight.fixes[0];
   const lastFix = flight.fixes[flight.fixes.length - 1];
-  const dateObj = new Date(firstFix.timestamp);
-  const date = dateObj.toISOString().split("T")[0];
+  const date = new Date(firstFix.timestamp).toISOString().split("T")[0];
 
   // Duration
   const duration_s = Math.round(
@@ -120,18 +118,6 @@ export async function scoreIgc(igcContent: string): Promise<ScoreResult> {
     totalDistKm += new Point(flight.fixes, i - 1).distanceEarth(
       new Point(flight.fixes, i)
     );
-  }
-
-  // Elevation gain
-  let elevationGain = 0;
-  for (let i = 1; i < flight.fixes.length; i++) {
-    const alt = flight.fixes[i].gpsAltitude ?? flight.fixes[i].pressureAltitude;
-    const prevAlt =
-      flight.fixes[i - 1].gpsAltitude ?? flight.fixes[i - 1].pressureAltitude;
-    if (alt != null && prevAlt != null) {
-      const delta = alt - prevAlt;
-      if (delta > 0) elevationGain += delta;
-    }
   }
 
   // Downsample coordinates to ~500 points
@@ -175,6 +161,5 @@ export async function scoreIgc(igcContent: string): Promise<ScoreResult> {
     date,
     duration_s,
     distance_km: totalDistKm,
-    elevation_gain_m: elevationGain,
   };
 }
