@@ -1,0 +1,201 @@
+---
+import Base from "../layouts/Base.astro";
+import Flightmap from "../components/Flightmap.astro";
+---
+
+<Base title="Flights - NorCal H&F">
+  <div class="w-full max-w-4xl mx-auto p-4">
+    <h1 class="text-center"><a href="/leaderboard" class="no-underline">Leaderboard</a></h1>
+    <h2 id="user-heading">Flights</h2>
+
+    <!-- Stats summary -->
+    <div id="stats-bar" class="hidden gap-4 mb-6">
+      <div class="bg-gray-50 rounded p-3 text-center">
+        <div class="text-sm text-gray-500">Total Score</div>
+        <div id="stat-total-score" class="text-xl font-bold"></div>
+      </div>
+      <div class="bg-gray-50 rounded p-3 text-center">
+        <div class="text-sm text-gray-500">Best Score</div>
+        <div id="stat-best-score" class="text-xl font-bold"></div>
+      </div>
+      <div class="bg-gray-50 rounded p-3 text-center">
+        <div class="text-sm text-gray-500">Flights</div>
+        <div id="stat-flights" class="text-xl font-bold"></div>
+      </div>
+      <div class="bg-gray-50 rounded p-3 text-center">
+        <div class="text-sm text-gray-500">Total KM</div>
+        <div id="stat-total-km" class="text-xl font-bold"></div>
+      </div>
+      <div class="bg-gray-50 rounded p-3 text-center">
+        <div class="text-sm text-gray-500">Avg Score</div>
+        <div id="stat-avg-score" class="text-xl font-bold"></div>
+      </div>
+    </div>
+
+    <div id="flights-loading" class="text-center text-gray-500 py-8">
+      Loading flights...
+    </div>
+
+    <div id="flights-error" class="text-center text-red-600 py-8 hidden"></div>
+
+    <div id="flights-table" class="hidden overflow-x-auto mb-6">
+      <table class="w-full border-collapse">
+        <thead>
+          <tr class="border-b-2 border-gray-300">
+            <th class="text-left py-2 px-3">Date</th>
+            <th class="text-right py-2 px-3">Score</th>
+            <th class="text-right py-2 px-3">Distance (km)</th>
+            <th class="text-right py-2 px-3">Duration</th>
+            <th class="text-right py-2 px-3">Type</th>
+            <th class="text-center py-2 px-3">Map</th>
+          </tr>
+        </thead>
+        <tbody id="flights-body"></tbody>
+      </table>
+    </div>
+
+    <Flightmap />
+  </div>
+</Base>
+
+<script>
+  import { R2_PUBLIC_URL } from "../config";
+
+  function formatDuration(seconds: number): string {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    return `${h}h ${m}m`;
+  }
+
+  function getUserId(): string | null {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("user");
+  }
+
+  async function loadFlights() {
+    const userId = getUserId();
+    const loading = document.getElementById("flights-loading")!;
+    const error = document.getElementById("flights-error")!;
+    const table = document.getElementById("flights-table")!;
+    const body = document.getElementById("flights-body")!;
+    const statsBar = document.getElementById("stats-bar")!;
+
+    if (!userId) {
+      loading.classList.add("hidden");
+      error.textContent = "No user specified. Use ?user=<user_id> in the URL.";
+      error.classList.remove("hidden");
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `${R2_PUBLIC_URL}/scores/users/${userId}.json`
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      // Update heading with display name
+      document.getElementById("user-heading")!.textContent =
+        `Flights: ${data.display_name}`;
+
+      // Stats
+      const s = data.stats;
+      document.getElementById("stat-total-score")!.textContent =
+        s.total_score.toFixed(1);
+      document.getElementById("stat-best-score")!.textContent =
+        s.best_score.toFixed(1);
+      document.getElementById("stat-flights")!.textContent =
+        String(s.total_flights);
+      document.getElementById("stat-total-km")!.textContent =
+        s.total_km.toFixed(1);
+      document.getElementById("stat-avg-score")!.textContent =
+        s.avg_score.toFixed(1);
+      statsBar.classList.remove("hidden");
+      statsBar.classList.add("grid", "grid-cols-2", "md:grid-cols-5");
+
+      // Flights table
+      body.innerHTML = data.flights
+        .map(
+          (f: any) => `
+        <tr class="border-b border-gray-200 hover:bg-gray-50">
+          <td class="py-2 px-3">${f.date}</td>
+          <td class="text-right py-2 px-3">${f.score.toFixed(1)}</td>
+          <td class="text-right py-2 px-3">${f.distance_km.toFixed(1)}</td>
+          <td class="text-right py-2 px-3">${formatDuration(f.duration_s)}</td>
+          <td class="text-right py-2 px-3">${f.breakdown.closed ? "Closed" : "Open"}</td>
+          <td class="text-center py-2 px-3">
+            <button class="view-flight-btn text-blue-700 underline cursor-pointer" data-track="${f.track_file}">
+              View
+            </button>
+          </td>
+        </tr>`
+        )
+        .join("");
+
+      loading.classList.add("hidden");
+      table.classList.remove("hidden");
+
+      // Wire up view buttons
+      document.querySelectorAll(".view-flight-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const trackFile = (btn as HTMLElement).dataset.track!;
+          loadTrack(trackFile);
+        });
+      });
+    } catch (e: any) {
+      loading.classList.add("hidden");
+      error.textContent = `Failed to load flights: ${e.message}`;
+      error.classList.remove("hidden");
+    }
+  }
+
+  async function loadTrack(trackFile: string) {
+    try {
+      const res = await fetch(`${R2_PUBLIC_URL}/${trackFile}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const track = await res.json();
+
+      const td = track.trackData;
+
+      // Build detail in the format Flightmap expects
+      let detail;
+      if (td) {
+        detail = {
+          flight: { fixes: td.fixes },
+          groundDist: td.groundDist,
+          best: {
+            scoreInfo: td.scoreInfo,
+            opt: { scoring: td.scoring },
+          },
+          closed: td.closed,
+        };
+      } else {
+        // Fallback for older track files that only have coordinates
+        const fixes = (track.coordinates || []).map(
+          (c: [number, number, number]) => ({
+            latitude: c[0],
+            longitude: c[1],
+            onGround: false,
+          })
+        );
+        detail = {
+          flight: { fixes },
+          groundDist: 0,
+          best: {
+            scoreInfo: { tp: [], cp: null, ep: null, distance: 0, penalty: 0 },
+            opt: { scoring: { code: "tri", multiplier: 1 } },
+          },
+          closed: false,
+        };
+      }
+
+      document.dispatchEvent(
+        new CustomEvent("igc-score-result", { detail })
+      );
+    } catch (e: any) {
+      console.error("Failed to load track:", e);
+    }
+  }
+
+  loadFlights();
+</script>

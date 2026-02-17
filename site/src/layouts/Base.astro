@@ -1,0 +1,26 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+}
+
+const { title = "NorCal H&F" } = Astro.props;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+  </head>
+  <body>
+    <div class="flex items-center justify-center pt-8 md:pt-12">
+      <a href="/" class="text-2xl/7 font-bold text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight no-underline hover:text-gray-700">
+        NorCal Hike and Fly Contest
+      </a>
+    </div>
+    <slot />
+  </body>
+</html>
