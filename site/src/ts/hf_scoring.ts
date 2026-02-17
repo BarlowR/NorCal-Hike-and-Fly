@@ -31,14 +31,14 @@ async function score(igc_file: string) {
 
     const initialLength = flight.fixes.length;
     // Filter fixes to 8am - 5pm local time
+    const hourFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      hourCycle: 'h23',
+      hour: 'numeric',
+    });
     flight.fixes = flight.fixes.filter(fix => {
-      const localHour = parseInt(
-        new Date(fix.timestamp).toLocaleString('en-US', {
-          timeZone,
-          hour: 'numeric',
-          hour12: false,
-        })
-      );
+      const parts = hourFormatter.formatToParts(new Date(fix.timestamp));
+      const localHour = parseInt(parts.find(p => p.type === 'hour')!.value);
       return localHour >= 8 && localHour < 17;
     });
     const filteredLength = flight.fixes.length;

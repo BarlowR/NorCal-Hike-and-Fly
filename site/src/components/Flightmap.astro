@@ -89,7 +89,7 @@ const flyingColor = '#001bff';
       }
 
       const hasStateInfo = fixes.some(
-        (f: Fix) => f.stateGround || f.stateFlight
+        (f: any) => f.stateGround || f.stateFlight || f.onGround !== undefined
       );
 
       if (hasStateInfo) {
