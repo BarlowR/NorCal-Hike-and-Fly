@@ -1,8 +1,7 @@
-// NOTE: This file mirrors tracklog_handler/src/hf_scoring.ts — keep them in sync.
+// NOTE: This file mirrors site/src/ts/hf_scoring.ts — keep them in sync.
 import IGCParser from 'igc-parser';
 import { solver, scoringRules as scoring } from 'igc-xc-score';
-import { analyze } from '../js/analyze_flight';
-
+import { analyze } from './analyze_flight.js';
 
 import { Point } from 'igc-xc-score/src/foundation.js';
 
@@ -11,7 +10,7 @@ async function getTimezone(lat: number, lon: number): Promise<string> {
     const res = await fetch(
       `https://timeapi.io/api/timezone/coordinate?latitude=${lat}&longitude=${lon}`
     );
-    const data = await res.json();
+    const data = (await res.json()) as { timeZone: string };
     return data.timeZone;
   } catch {
     // Fallback to longitude estimate
@@ -22,7 +21,7 @@ async function getTimezone(lat: number, lon: number): Promise<string> {
 
 async function score(igc_file: string) {
   try {
-    const flight = IGCParser.parse(igc_file, { lenient: true });
+    const flight = IGCParser.parse(igc_file, { lenient: true }) as any;
 
     // Get timezone from flight location
     const lat = flight.fixes[0].latitude;
@@ -31,7 +30,7 @@ async function score(igc_file: string) {
 
     const initialLength = flight.fixes.length;
     // Filter fixes to 8am - 5pm local time
-    flight.fixes = flight.fixes.filter(fix => {
+    flight.fixes = flight.fixes.filter((fix: any) => {
       const localHour = parseInt(
         new Date(fix.timestamp).toLocaleString('en-US', {
           timeZone,
@@ -45,9 +44,9 @@ async function score(igc_file: string) {
     let filteredByTime = false;
     if (filteredLength < initialLength) filteredByTime = true;
 
-    const triangleScoringRules = scoring.XContest
-      .filter(r => r.code === 'tri' || r.code === 'fai')
-      .map(r => ({
+    const triangleScoringRules = (scoring as any).XContest
+      .filter((r: any) => r.code === 'tri' || r.code === 'fai')
+      .map((r: any) => ({
           ...r,
           closingDistanceRelative: 0.8,
           closingDistanceFree: 0,
@@ -67,22 +66,24 @@ async function score(igc_file: string) {
 
     analyze(flight, {analyze : true});
 
-    let closed = (best.scoreInfo?.distance * 0.2) > (best.scoreInfo?.penalty)
+    const triangleDist = best.scoreInfo?.distance ?? 0;
+    const penalty = best.scoreInfo?.penalty ?? 0;
+    let closed = (triangleDist * 0.2) > penalty;
 
     let groundDist = 0;
-    let filter_window = 5; 
+    let filter_window = 5;
     for (let i = filter_window; i < flight.fixes.length - filter_window; i+=filter_window) {
-      if (flight.fixes[i].onGround) { 
+      if (flight.fixes[i].onGround) {
         const dist = (new Point(flight.fixes, i - filter_window).distanceEarth(new Point(flight.fixes, i)));
         groundDist += dist;
       }
     }
 
-    let score = 0; 
+    let score = 0;
     // Full triangle
-    score += best.scoreInfo?.distance;
+    score += triangleDist;
     // Closing Penalty
-    score -= (best.scoreInfo?.penalty * 2);
+    score -= (penalty * 2);
     // Hiking Bonus
     score += (groundDist);
     // Triangle Multiplier
@@ -93,6 +94,6 @@ async function score(igc_file: string) {
     console.error(e);
   }
 }
-  
+
 
 export { score }
