@@ -1,0 +1,77 @@
+---
+import Base from "../layouts/Base.astro";
+---
+
+<Base title="Leaderboard - NorCal H&F">
+  <div class="w-full max-w-4xl mx-auto p-4">
+    <h1 class="text-center">Leaderboard</h1>
+
+    <div id="leaderboard-loading" class="text-center text-gray-500 py-8">
+      Loading leaderboard...
+    </div>
+
+    <div id="leaderboard-error" class="text-center text-red-600 py-8 hidden"></div>
+
+    <div id="leaderboard-table" class="hidden overflow-x-auto">
+      <p id="leaderboard-updated" class="text-sm text-gray-500 text-right mb-2"></p>
+      <table class="w-full border-collapse">
+        <thead>
+          <tr class="border-b-2 border-gray-300">
+            <th class="text-left py-2 px-3">#</th>
+            <th class="text-left py-2 px-3">Name</th>
+            <th class="text-right py-2 px-3">Total Score</th>
+            <th class="text-right py-2 px-3">Best Score</th>
+            <th class="text-right py-2 px-3">Flights</th>
+            <th class="text-right py-2 px-3">Total KM</th>
+            <th class="text-right py-2 px-3">Last Flight</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboard-body"></tbody>
+      </table>
+    </div>
+  </div>
+</Base>
+
+<script>
+  import { R2_PUBLIC_URL } from "../config";
+
+  async function loadLeaderboard() {
+    const loading = document.getElementById("leaderboard-loading")!;
+    const error = document.getElementById("leaderboard-error")!;
+    const table = document.getElementById("leaderboard-table")!;
+    const body = document.getElementById("leaderboard-body")!;
+    const updated = document.getElementById("leaderboard-updated")!;
+
+    try {
+      const res = await fetch(`${R2_PUBLIC_URL}/scores/leaderboard.json`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      updated.textContent = `Updated: ${new Date(data.updated_at).toLocaleDateString()}`;
+
+      body.innerHTML = data.rankings
+        .map(
+          (r: any, i: number) => `
+        <tr class="border-b border-gray-200 hover:bg-gray-50">
+          <td class="py-2 px-3">${i + 1}</td>
+          <td class="py-2 px-3"><a href="/flights?user=${r.user_id}">${r.display_name}</a></td>
+          <td class="text-right py-2 px-3">${r.total_score.toFixed(1)}</td>
+          <td class="text-right py-2 px-3">${r.best_score.toFixed(1)}</td>
+          <td class="text-right py-2 px-3">${r.total_flights}</td>
+          <td class="text-right py-2 px-3">${r.total_km.toFixed(1)}</td>
+          <td class="text-right py-2 px-3">${r.last_flight || "—"}</td>
+        </tr>`
+        )
+        .join("");
+
+      loading.classList.add("hidden");
+      table.classList.remove("hidden");
+    } catch (e: any) {
+      loading.classList.add("hidden");
+      error.textContent = `Failed to load leaderboard: ${e.message}`;
+      error.classList.remove("hidden");
+    }
+  }
+
+  loadLeaderboard();
+</script>

@@ -104,12 +104,13 @@ async function main() {
       const content = await getObject(key);
       const result = await scoreIgc(content);
 
-      // Write track file
+      // Write track file with full data for Flightmap rendering
       const trackKey = `scores/tracks/${userId}/${flightId}.json`;
       await putObject(
         trackKey,
         JSON.stringify({
           coordinates: result.coordinates,
+          trackData: result.trackData,
           start: result.date,
         })
       );
