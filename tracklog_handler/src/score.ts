@@ -7,6 +7,7 @@ export interface ScoreBreakdown {
   hiking_km: number;
   multiplier: number;
   closed: boolean;
+  scoring_code: string;
 }
 
 export interface TrackData {
@@ -135,6 +136,7 @@ export async function scoreIgc(igcContent: string): Promise<ScoreResult> {
       hiking_km: groundDist,
       multiplier: best.opt.scoring.multiplier,
       closed,
+      scoring_code: best.opt.scoring.code,
     },
     coordinates,
     trackData,

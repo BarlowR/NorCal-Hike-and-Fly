@@ -11,7 +11,7 @@ import Flightmap from "../components/Flightmap.astro";
     <!-- Stats summary -->
     <div id="stats-bar" class="hidden gap-4 mb-6">
       <div class="bg-gray-50 rounded p-3 text-center">
-        <div class="text-sm text-gray-500">Total Score</div>
+        <div class="text-sm text-gray-500">Contest Score</div>
         <div id="stat-total-score" class="text-xl font-bold"></div>
       </div>
       <div class="bg-gray-50 rounded p-3 text-center">
@@ -19,11 +19,11 @@ import Flightmap from "../components/Flightmap.astro";
         <div id="stat-best-score" class="text-xl font-bold"></div>
       </div>
       <div class="bg-gray-50 rounded p-3 text-center">
-        <div class="text-sm text-gray-500">Flights</div>
+        <div class="text-sm text-gray-500">Total Flights</div>
         <div id="stat-flights" class="text-xl font-bold"></div>
       </div>
       <div class="bg-gray-50 rounded p-3 text-center">
-        <div class="text-sm text-gray-500">Total KM</div>
+        <div class="text-sm text-gray-500">Total Hiked</div>
         <div id="stat-total-km" class="text-xl font-bold"></div>
       </div>
       <div class="bg-gray-50 rounded p-3 text-center">
@@ -44,7 +44,9 @@ import Flightmap from "../components/Flightmap.astro";
           <tr class="border-b-2 border-gray-300">
             <th class="text-left py-2 px-3">Date</th>
             <th class="text-right py-2 px-3">Score</th>
-            <th class="text-right py-2 px-3">Distance (km)</th>
+            <th class="text-right py-2 px-3">Triangle (km)</th>
+            <th class="text-right py-2 px-3">Hiking (km)</th>
+            <th class="text-right py-2 px-3">Penalty (km)</th>
             <th class="text-right py-2 px-3">Duration</th>
             <th class="text-right py-2 px-3">Type</th>
             <th class="text-center py-2 px-3">Map</th>
@@ -120,9 +122,11 @@ import Flightmap from "../components/Flightmap.astro";
         <tr class="border-b border-gray-200 hover:bg-gray-50">
           <td class="py-2 px-3">${f.date}</td>
           <td class="text-right py-2 px-3">${f.score.toFixed(1)}</td>
-          <td class="text-right py-2 px-3">${f.distance_km.toFixed(1)}</td>
+          <td class="text-right py-2 px-3">${f.breakdown.triangle_km.toFixed(1)}</td>
+          <td class="text-right py-2 px-3">${f.breakdown.hiking_km.toFixed(1)}</td>
+          <td class="text-right py-2 px-3">${f.breakdown.penalty_km.toFixed(1)}</td>
           <td class="text-right py-2 px-3">${formatDuration(f.duration_s)}</td>
-          <td class="text-right py-2 px-3">${f.breakdown.closed ? "Closed" : "Open"}</td>
+          <td class="text-right py-2 px-3">${f.breakdown.closed ? "Closed" : "Open"} ${(f.breakdown.scoring_code || "tri").toUpperCase()}</td>
           <td class="text-center py-2 px-3">
             <button class="view-flight-btn text-blue-700 underline cursor-pointer" data-track="${f.track_file}">
               View
