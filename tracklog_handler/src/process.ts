@@ -14,6 +14,7 @@ interface FlightEntry {
 interface UserData {
   user_id: string;
   display_name: string;
+  category: string;
   stats: {
     total_score: number;
     total_km: number;
@@ -27,6 +28,7 @@ interface UserData {
 interface LeaderboardEntry {
   user_id: string;
   display_name: string;
+  category: string;
   total_score: number;
   total_km: number;
   total_flights: number;
@@ -59,6 +61,7 @@ async function getExistingUserData(userId: string): Promise<UserData> {
     return {
       user_id: userId,
       display_name: userId,
+      category: "",
       stats: {
         total_score: 0,
         total_km: 0,
@@ -82,6 +85,14 @@ async function main() {
   }
 
   console.log(`Found ${igcKeys.length} IGC file(s) to process.`);
+
+  // Load users.json for category lookup
+  let usersConfig: Record<string, { passphrase: string; category?: string }> = {};
+  try {
+    usersConfig = JSON.parse(await getObject("users.json"));
+  } catch (err) {
+    console.warn("Could not load users.json for category lookup:", err);
+  }
 
   // Track which users got new flights
   const userNewFlights = new Map<string, FlightEntry[]>();
@@ -148,6 +159,11 @@ async function main() {
       console.log(`Updating user data for: ${userId}`);
       const userData = await getExistingUserData(userId);
 
+      // Set category from users.json
+      if (usersConfig[userId]?.category) {
+        userData.category = usersConfig[userId].category;
+      }
+
       // Append new flights (avoid duplicates by id)
       const existingIds = new Set(userData.flights.map((f) => f.id));
       for (const flight of newFlights) {
@@ -185,6 +201,7 @@ async function main() {
         rankings.push({
           user_id: userData.user_id,
           display_name: userData.display_name,
+          category: userData.category || "",
           total_score: userData.stats.total_score,
           total_km: userData.stats.total_km,
           total_flights: userData.stats.total_flights,
