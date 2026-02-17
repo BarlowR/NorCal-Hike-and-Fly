@@ -79,16 +79,20 @@ async function score(igc_file: string) {
     }
 
     analyze(flight, {analyze : true});
+    const fixes = flight.filtered || flight.fixes;
 
     const triangleDist = best.scoreInfo?.distance ?? 0;
     const penalty = best.scoreInfo?.penalty ?? 0;
     let closed = (triangleDist * 0.2) > penalty;
 
+    const onGroundCount = fixes.filter((f: any) => f.onGround).length;
+    console.log(`  Filtered fixes: ${fixes.length}, onGround=true: ${onGroundCount}`);
+
     let groundDist = 0;
     let filter_window = 5;
-    for (let i = filter_window; i < flight.fixes.length - filter_window; i+=filter_window) {
-      if (flight.fixes[i].onGround) {
-        const dist = (new Point(flight.fixes, i - filter_window).distanceEarth(new Point(flight.fixes, i)));
+    for (let i = filter_window; i < fixes.length - filter_window; i+=filter_window) {
+      if (fixes[i].onGround) {
+        const dist = (new Point(fixes, i - filter_window).distanceEarth(new Point(fixes, i)));
         groundDist += dist;
       }
     }
