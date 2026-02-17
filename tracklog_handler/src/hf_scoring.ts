@@ -29,20 +29,34 @@ async function score(igc_file: string) {
     const timeZone = await getTimezone(lat, lon);
 
     const initialLength = flight.fixes.length;
+    console.log(`  Timezone: ${timeZone}`);
+    console.log(`  Total fixes: ${initialLength}`);
+
+    // Log first fix time for debugging
+    const firstFixDate = new Date(flight.fixes[0].timestamp);
+    console.log(`  First fix UTC: ${firstFixDate.toISOString()}`);
+
     // Filter fixes to 8am - 5pm local time
+    const hourFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      hourCycle: 'h23',
+      hour: 'numeric',
+    });
+
+    // Log what the formatter produces for the first fix
+    const sampleParts = hourFormatter.formatToParts(firstFixDate);
+    const sampleHour = parseInt(sampleParts.find((p: any) => p.type === 'hour')!.value);
+    console.log(`  First fix local hour: ${sampleHour} (formatted: "${hourFormatter.format(firstFixDate)}")`);
+
     flight.fixes = flight.fixes.filter((fix: any) => {
-      const localHour = parseInt(
-        new Date(fix.timestamp).toLocaleString('en-US', {
-          timeZone,
-          hour: 'numeric',
-          hour12: false,
-        })
-      );
+      const parts = hourFormatter.formatToParts(new Date(fix.timestamp));
+      const localHour = parseInt(parts.find((p: any) => p.type === 'hour')!.value);
       return localHour >= 8 && localHour < 17;
     });
     const filteredLength = flight.fixes.length;
     let filteredByTime = false;
     if (filteredLength < initialLength) filteredByTime = true;
+    console.log(`  Fixes after time filter: ${filteredLength} (removed ${initialLength - filteredLength})`);
 
     const triangleScoringRules = (scoring as any).XContest
       .filter((r: any) => r.code === 'tri' || r.code === 'fai')
@@ -88,6 +102,9 @@ async function score(igc_file: string) {
     score += (groundDist);
     // Triangle Multiplier
     score *= best.opt.scoring.multiplier
+
+    console.log(`  Scoring: tri=${triangleDist.toFixed(2)} penalty=${penalty.toFixed(2)} ground=${groundDist.toFixed(2)} mult=${best.opt.scoring.multiplier} closed=${closed}`);
+    console.log(`  Final score: ${score.toFixed(2)} (optimal=${best.optimal}, cycles=${cycles})`);
 
     return {best: best, flight: flight, groundDist: groundDist, closed : closed, score : score, filteredByTime : filteredByTime}
   } catch (e: any) {
