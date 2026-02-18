@@ -34,7 +34,7 @@ const definitionFlight = {
 
 const definitionGround = {
   t: 20,
-  xmax: 20,
+  xmax: 5,
   zmax: 0.1,
 };
 
