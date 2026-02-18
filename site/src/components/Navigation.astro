@@ -16,10 +16,10 @@ const tabs = [
 
 <div class="w-full max-w-4xl mx-auto p-4">
   <!-- Toggle Bar -->
-  <div class="flex justify-center border-b border-gray-200 mb-6">
+  <div class="flex flex-wrap justify-center border-b border-gray-200 mb-6">
     {tabs.map(tab => (
       <button
-        class="tab-button px-6 py-3 text-gray-600 hover:text-gray-900 border-b-2 border-transparent transition-colors"
+        class="tab-button px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-600 hover:text-gray-900 border-b-2 border-transparent transition-colors"
         data-tab={tab.id}
       >
         {tab.label}
