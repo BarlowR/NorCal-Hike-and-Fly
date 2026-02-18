@@ -1,14 +1,16 @@
 ---
 import { Content as Overview } from '../content/Overview.md'; 
 import { Content as Rules } from '../content/Rules.md'; 
+import { Content as Prologue } from '../content/Prologue.md'; 
 import About from '../content/About.astro'; 
 import Scoring from '../content/Scoring.astro'; 
 // ComponentToggle.astro
 const tabs = [
   { id: 'overview', label: 'Overview' },
+  { id: 'prologue', label: 'Prologue' },
   { id: 'rules', label: 'Proposed Rules' },
   { id: 'about', label: 'About' }, 
-  { id: 'scoring', label: 'Scoring' }
+  { id: 'scoring', label: 'Scoring' },
 ];
 ---
 
@@ -28,6 +30,10 @@ const tabs = [
   <!-- Content Panels -->
   <div class="tab-content" data-content="overview">
     <Overview />
+  </div>
+
+  <div class="tab-content" data-content="prologue">
+    <Prologue />
   </div>
   
   <div class="tab-content hidden" data-content="rules">

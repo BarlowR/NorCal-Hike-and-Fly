@@ -6,11 +6,20 @@
 
 ### Scoring
 
+#### Divisions
+
+Upon registration, a pilot will select a division. This should correspond to the highest wing class the pilot plans to fly throughout the season (EN-B/C/D). Divisions can be bumped up during the season (I.E. EN-B to EN-C) but not down. Send an email to [norcalhf@gmail.com](norcalhf@gmail.com) if you would like to jump up a division. 
+
 #### Tracklog Submission for Scoring
 
 All scoring is done using .igc tracklogs. These tracklogs must contain a single track for the whole day of scoring. Tracks must start after 8am, and must conclude by 5pm. If a track begins before 8am or ends after 5pm, it will be truncated to be within these bounds. 
 
-A method of submitting tracklogs on this site will be provided.
+Tracklogs must be submitted within 7 days. A method of submitting tracklogs on this site will be provided.
+
+#### Hiking
+
+All hiking must be performed with the same equipment set (wing, harness, reserve(s), etc.) that was used for the flying portion of the tracklog.
+
 
 #### Triangles
 All tracks are scored as either a flat triangle or a FAI triangle. There is no open distance scoring type. Any triangle that does not conform to the FAI specification is considered a flat triangle. Any triangle where no leg connecting vertices is shorter than 28% of the total distance is considered a FAI triangles. 
@@ -29,7 +38,7 @@ A penalty of **2 points** per km of closing distance is assessed to the score.
 
 
 #### Hiking Bonus
-The total distance hiked is computed from the tracklog during portions when the pilot was on the ground. One point is added to the score for each km hiked. 
+The total distance hiked is computed from the tracklog during portions when the pilot was on the ground. One point is added to the score for each km hiked. All distance hiked counts towards the score, not just hiking that contributes towards triangle turnpoints.
 
 
 #### Triangle Multiplier
