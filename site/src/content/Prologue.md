@@ -1,6 +1,6 @@
 #### The Prologue will run from March 1st to March 31st. 
 
-The prologue is intended to give folks time to try out the scoring system before the full season begins. It is also an opportunity to see what infrastructure breaks.
+The Prologue is intended to give folks time to try out the scoring system before the full season begins. It is also an opportunity to see what infrastructure breaks.
 
 
 #### Prologue Rule Changes
