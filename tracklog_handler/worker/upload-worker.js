@@ -93,6 +93,23 @@ export default {
         return jsonResponse({ error: "Empty file" }, 400);
       }
 
+      // Hash file content for dedup (per-user only)
+      const hashBuffer = await crypto.subtle.digest("SHA-256", fileData);
+      const fileHash = [...new Uint8Array(hashBuffer)]
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+
+      // Check for duplicate across incoming/ and processed/ for this user
+      for (const prefix of [`incoming/${userId}/`, `processed/${userId}/`]) {
+        const existing = await env.TRACKLOGS.list({ prefix });
+        for (const obj of existing.objects) {
+          const head = await env.TRACKLOGS.head(obj.key);
+          if (head?.customMetadata?.fileHash === fileHash) {
+            return jsonResponse({ error: "This flight has already been uploaded" }, 409);
+          }
+        }
+      }
+
       // Store in R2: incoming/<user_id>/<timestamp>-<filename>.igc
       const timestamp = Date.now();
       const key = `incoming/${userId}/${timestamp}-${fileName}`;
@@ -102,12 +119,18 @@ export default {
           user_id: userId,
           uploaded_at: new Date().toISOString(),
           original_filename: fileName,
+          fileHash,
         },
       });
+
+      // Count pending files for this user
+      const listed = await env.TRACKLOGS.list({ prefix: `incoming/${userId}/` });
+      const pendingCount = listed.objects.length;
 
       return jsonResponse({
         success: true,
         key,
+        pendingCount,
         message: "Tracklog uploaded. It will be processed in the next daily build.",
       }, 200);
 
