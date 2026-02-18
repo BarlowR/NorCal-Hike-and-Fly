@@ -214,12 +214,17 @@
         if (res.status === 401) {
           throw new Error('Invalid username or passphrase');
         }
+        if (res.status === 409) {
+          throw new Error('This flight has already been uploaded');
+        }
         const text = await res.text();
         throw new Error(text || `Upload failed (${res.status})`);
       }
 
+      const data = await res.json();
+      const pending = data.pendingCount || 1;
       uploadBtn.textContent = 'Uploaded';
-      uploadStatus.textContent = 'Tracklog uploaded successfully. Scores will post tomorrow.';
+      uploadStatus.textContent = `Tracklog uploaded successfully. You have ${pending} pending flight${pending === 1 ? '' : 's'}. Scores will post tomorrow.`;
       uploadStatus.className = 'text-sm text-green-600';
     } catch (err: any) {
       uploadBtn.disabled = false;
