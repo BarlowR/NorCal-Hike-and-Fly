@@ -33,9 +33,8 @@ const definitionFlight = {
 };
 
 const definitionGround = {
-  t: 20,
   xmax: 5,
-  zmax: 0.1,
+  zmax: 0.5,
 };
 
 import { Point } from 'igc-xc-score/src/foundation.js';
@@ -143,7 +142,7 @@ function detectFlight(fixes: Fix[]) {
           fixes[i].timestamp >
           fixes[start].timestamp + definitionFlight.t * 1000
         )
-          for (let j = start; j <= i; j++) fixes[i].stateFlight = true;
+          for (let j = start; j <= i; j++) fixes[j].stateFlight = true;
       } else {
         start = undefined;
       }
@@ -151,27 +150,12 @@ function detectFlight(fixes: Fix[]) {
 }
 
 function detectGround(fixes: Fix[]) {
-  let start: number | undefined;
-  for (let i = 0; i < fixes.length - 1; i++) {
+  for (let i = 0; i < fixes.length; i++) {
     if (
-      start === undefined &&
       fixes[i].hma! < definitionGround.xmax &&
       fixes[i].vma! < definitionGround.zmax
     )
-      start = i;
-    if (start !== undefined)
-      if (
-        fixes[i].hma! < definitionGround.xmax &&
-        fixes[i].vma! < definitionGround.zmax
-      ) {
-        if (
-          fixes[i].timestamp >
-          fixes[start].timestamp + definitionGround.t * 1000
-        )
-          for (let j = start; j <= i; j++) fixes[i].stateGround = true;
-      } else {
-        start = undefined;
-      }
+      fixes[i].stateGround = true;
   }
 }
 
@@ -188,7 +172,6 @@ function detectLaunchLanding(fixes: Fix[]) {
       ll.push({ launch, landing });
     }
   }
-  if (ll.length == 0) ll.push({ launch: 0, landing: fixes.length - 1 });
   for (const fix of fixes) {
     fix.onGround = true;
   }
