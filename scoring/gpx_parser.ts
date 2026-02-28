@@ -46,6 +46,23 @@ export function parseGpx(xmlText: string): IGCParser.IGCFile {
 
   fixes.sort((a, b) => a.timestamp - b.timestamp);
 
+  // Smooth GPS altitude with a 30-second centered moving average.
+  // Raw GPS elevation can be noisy (±2–5 m), which creates large apparent vertical
+  // speeds. Smoothing gives more accurate vspeed for flight detection.
+  const HALF_WIN = 15_000;
+  const smoothed = fixes.map((fix, i) => {
+    let sum = 0, count = 0;
+    for (let j = 0; j < fixes.length; j++) {
+      const alt = fixes[j].gpsAltitude;
+      if (alt !== null && Math.abs(fixes[j].timestamp - fix.timestamp) <= HALF_WIN) {
+        sum += alt;
+        count++;
+      }
+    }
+    const alt = count > 0 ? sum / count : fix.gpsAltitude;
+    return { ...fix, gpsAltitude: alt, pressureAltitude: alt };
+  });
+
   return {
     date: new Date(fixes[0].timestamp).toISOString().split('T')[0],
     numFlight: null,
@@ -62,7 +79,7 @@ export function parseGpx(xmlText: string): IGCParser.IGCFile {
     firmwareVersion: null,
     hardwareVersion: null,
     task: null,
-    fixes,
+    fixes: smoothed,
     dataRecords: [],
     security: null,
     errors: [],
