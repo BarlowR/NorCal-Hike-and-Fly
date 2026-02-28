@@ -1,6 +1,7 @@
 import IGCParser from 'igc-parser';
 import { solver, scoringRules as scoring } from 'igc-xc-score';
 import { analyze } from './analyze_flight.js';
+import { parseGpx } from './gpx_parser.js';
 
 import { Point } from 'igc-xc-score/src/foundation.js';
 
@@ -18,9 +19,12 @@ async function getTimezone(lat: number, lon: number): Promise<string> {
   }
 }
 
-async function score(igc_file: string) {
+async function score(file_contents: string) {
   try {
-    const flight = IGCParser.parse(igc_file, { lenient: true }) as any;
+    const isGpx = file_contents.trimStart().startsWith('<');
+    const flight = (isGpx
+      ? parseGpx(file_contents)
+      : IGCParser.parse(file_contents, { lenient: true })) as any;
 
     // Get timezone from flight location
     const lat = flight.fixes[0].latitude;

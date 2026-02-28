@@ -83,8 +83,9 @@ export default {
       }
 
       // Basic validation
-      if (!fileName.toLowerCase().endsWith(".igc")) {
-        return jsonResponse({ error: "Only .igc files are accepted" }, 400);
+      const ext = fileName.split('.').pop()?.toLowerCase();
+      if (ext !== "igc" && ext !== "gpx") {
+        return jsonResponse({ error: "Only .igc and .gpx files are accepted" }, 400);
       }
       if (fileData.byteLength > 10 * 1024 * 1024) {
         return jsonResponse({ error: "File too large (10MB max)" }, 400);

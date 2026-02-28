@@ -77,14 +77,17 @@ async function getExistingUserData(userId: string): Promise<UserData> {
 async function main() {
   console.log("Listing incoming files...");
   const allKeys = await listObjects("incoming/");
-  const igcKeys = allKeys.filter((k) => k.toLowerCase().endsWith(".igc"));
+  const igcKeys = allKeys.filter((k) => {
+    const ext = k.split('.').pop()?.toLowerCase();
+    return ext === "igc" || ext === "gpx";
+  });
 
   if (igcKeys.length === 0) {
-    console.log("No new IGC files to process.");
+    console.log("No new tracklog files to process.");
     return;
   }
 
-  console.log(`Found ${igcKeys.length} IGC file(s) to process.`);
+  console.log(`Found ${igcKeys.length} tracklog file(s) to process.`);
 
   // Load users.json for category lookup
   let usersConfig: Record<string, { passphrase: string; category?: string }> = {};
@@ -109,7 +112,7 @@ async function main() {
       }
       const userId = parts[1];
       const filename = parts.slice(2).join("/");
-      const flightId = filename.replace(/\.igc$/i, "");
+      const flightId = filename.replace(/\.(igc|gpx)$/i, "");
 
       // Download and score
       const content = await getObject(key);
