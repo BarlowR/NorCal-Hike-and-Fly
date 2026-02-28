@@ -43,9 +43,9 @@ interface Leaderboard {
 
 function computeStats(flights: FlightEntry[]): UserData["stats"] {
   const scores = flights.map((f) => f.score);
-  const top4 = [...scores].sort((a, b) => b - a).slice(0, 4);
+  const top2 = [...scores].sort((a, b) => b - a).slice(0, 2);
   return {
-    total_score: top4.reduce((a, b) => a + b, 0),
+    total_score: top2.reduce((a, b) => a + b, 0),
     total_km: flights.reduce((a, f) => a + f.breakdown.hiking_km, 0),
     total_flights: flights.length,
     avg_score: flights.length > 0 ? scores.reduce((a, b) => a + b, 0) / flights.length : 0,
