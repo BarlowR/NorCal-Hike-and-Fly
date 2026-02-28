@@ -43,6 +43,7 @@ export function parseGpx(xmlText: string): IGCParser.IGCFile {
   }
 
   if (fixes.length === 0) throw new Error('No track points found in GPX file');
+  if (fixes.every(f => f.gpsAltitude === null)) throw new Error('GPX file has no altitude data');
 
   fixes.sort((a, b) => a.timestamp - b.timestamp);
 
