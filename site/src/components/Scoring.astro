@@ -127,6 +127,9 @@
     const daysSince = (Date.now() - flightDate.getTime()) / (1000 * 60 * 60 * 24);
     const tooOld = daysSince > 7;
 
+    // Check flight is within the contest window (March)
+    const outsideContest = flightDate.getMonth() !== 2;
+
     // Display results
     resultsList.innerHTML = '';
     addResult('Hiking Distance', result.groundDist?.toFixed(2) + ' km');
@@ -142,9 +145,12 @@
     if (tooOld) {
       addResult('', `Flight is ${Math.floor(daysSince)} days old — uploads must be within 7 days`);
     }
+    if (outsideContest) {
+      addResult('', `Flight date is ${flightDate.toLocaleDateString()} — only March flights are eligible for the prologue`);
+    }
 
     results.classList.remove('hidden');
-    if (tooOld) {
+    if (tooOld || outsideContest) {
       uploadSection.style.display = 'none';
     } else {
       uploadSection.style.display = '';

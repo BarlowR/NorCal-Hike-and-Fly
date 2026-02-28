@@ -82,6 +82,12 @@ export default {
         fileData = await request.arrayBuffer();
       }
 
+      // Contest window: March 1–31 only
+      const now = new Date();
+      if (now.getMonth() !== 2) {
+        return jsonResponse({ error: "Uploads are only accepted during the contest window (March 1–31)" }, 403);
+      }
+
       // Basic validation
       const ext = fileName.split('.').pop()?.toLowerCase();
       if (ext !== "igc" && ext !== "gpx") {
@@ -92,6 +98,16 @@ export default {
       }
       if (fileData.byteLength === 0) {
         return jsonResponse({ error: "Empty file" }, 400);
+      }
+
+      // Validate tracklog date is within March
+      const text = new TextDecoder().decode(fileData);
+      const flightDate = extractFlightDate(text);
+      if (!flightDate) {
+        return jsonResponse({ error: "Could not determine flight date from tracklog" }, 400);
+      }
+      if (flightDate.getMonth() !== 2) {
+        return jsonResponse({ error: "Tracklog date must be within the contest window (March 1–31)" }, 403);
       }
 
       // Hash file content for dedup (per-user only)
@@ -141,6 +157,22 @@ export default {
     }
   },
 };
+
+// Extract the flight date from an IGC or GPX file's text content.
+// IGC: HFDTEDATE:DDMMYY or HFDTEDDMMYY
+// GPX: first <time>YYYY-MM-DD...</time> in a track point
+function extractFlightDate(text) {
+  const igcMatch = text.match(/HFDTE(?:DATE:)?(\d{2})(\d{2})(\d{2})/);
+  if (igcMatch) {
+    const [, dd, mm, yy] = igcMatch;
+    return new Date(`20${yy}-${mm}-${dd}`);
+  }
+  const gpxMatch = text.match(/<time>(\d{4}-\d{2}-\d{2})/);
+  if (gpxMatch) {
+    return new Date(gpxMatch[1]);
+  }
+  return null;
+}
 
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
