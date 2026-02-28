@@ -22,3 +22,9 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# r2 wrangler
+.wrangler
+
+# User manifest
+users.json

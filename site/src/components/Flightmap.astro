@@ -89,7 +89,7 @@ const flyingColor = '#001bff';
       }
 
       const hasStateInfo = fixes.some(
-        (f: Fix) => f.stateGround || f.stateFlight
+        (f: any) => f.stateGround || f.stateFlight || f.onGround !== undefined
       );
 
       if (hasStateInfo) {
@@ -191,6 +191,12 @@ const flyingColor = '#001bff';
     if (ep?.start) {
       allBounds.push([ep.start.y, ep.start.x]);
       allBounds.push([ep.finish.y, ep.finish.x]);
+    }
+    // Fall back to track fixes for bounds
+    if (allBounds.length < 2 && fixes?.length) {
+      for (const fix of fixes as { latitude: number; longitude: number }[]) {
+        allBounds.push([fix.latitude, fix.longitude]);
+      }
     }
 
     if (allBounds.length >= 2) {

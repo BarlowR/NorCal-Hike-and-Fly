@@ -1,19 +1,8 @@
 ---
-import Header from "../components/Header.astro";
+import Base from "../layouts/Base.astro";
 import Navigation from "../components/Navigation.astro";
-
-
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>NorCal H&F</title>
-	</head>
-	<body>
-		<Header></Header>
-		<Navigation></Navigation>
-	</body>
-</html>
+<Base>
+  <Navigation />
+</Base>
