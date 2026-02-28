@@ -91,7 +91,8 @@ import Flightmap from "../components/Flightmap.astro";
 
     try {
       const res = await fetch(
-        `${R2_PUBLIC_URL}/scores/users/${userId}.json`
+        `${R2_PUBLIC_URL}/scores/users/${userId}.json`,
+        { cache: 'no-store' }
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
@@ -155,7 +156,7 @@ import Flightmap from "../components/Flightmap.astro";
 
   async function loadTrack(trackFile: string) {
     try {
-      const res = await fetch(`${R2_PUBLIC_URL}/${trackFile}`);
+      const res = await fetch(`${R2_PUBLIC_URL}/${trackFile}`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const track = await res.json();
 

@@ -44,7 +44,7 @@ import Base from "../layouts/Base.astro";
     const updated = document.getElementById("leaderboard-updated")!;
 
     try {
-      const res = await fetch(`${R2_PUBLIC_URL}/scores/leaderboard.json`);
+      const res = await fetch(`${R2_PUBLIC_URL}/scores/leaderboard.json`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
