@@ -7,7 +7,7 @@ You've been registered for the **NorCal Hike & Fly Prologue** in the {{category}
 
 The prologue starts tomorrow and ends on the 31st of March. It looks like we'll have great weather for the opening day!
 
-I'm in the process of adding everyone to a telegram group. If you notice any problems with the website or the scoring system, please send an email to norcalhf@gmail.com or post there. 
+I'm in the process of adding everyone to a telegram group. If you notice any problems with the website or the scoring system, please send an email to norcalhf@gmail.com or post on telegram. 
 
 Reminder of the rule changes:
 
