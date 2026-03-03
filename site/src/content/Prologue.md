@@ -1,7 +1,4 @@
-#### The Prologue will run from March 1st to March 31st. 
-
-The Prologue is intended to give folks time to try out the scoring system before the full season begins. It is also an opportunity to see what infrastructure breaks.
-
+#### The Prologue is running from March 1st to March 31st. 
 
 #### Prologue Rule Changes
 
@@ -12,5 +9,4 @@ The Prologue will be conducted the same as the main season contest, with the fol
 * The fly-with-friends bonus will not be used. 
 
 
-
-#### [Register Here](https://forms.gle/Jpu2PvBmsTkQpAfY6)
+Want to join late? Send an email to [norcalhf@gmail.com](norcalhf@gmail.com)

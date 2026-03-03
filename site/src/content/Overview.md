@@ -1,5 +1,5 @@
-#### The Prologue of the 2026 NorCal Hike and Fly Contest will run from March 1st to March 31st! 
-[Register here](https://forms.gle/Jpu2PvBmsTkQpAfY6) to join the prologue.
+#### The Prologue of the 2026 NorCal Hike and Fly Contest is running from March 1st to March 31st
+Check the leaderboard to see the latest scores!
 
 
 ####  NorCal Hike and Fly Contest aims to bring folks together for friendly competition in the sport of hike and fly.  
