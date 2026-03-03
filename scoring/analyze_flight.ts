@@ -29,13 +29,18 @@ const definitionFlight = {
   x0: 1.5,
   xt: 5,
   z0: 0.05,
-  zt: 0.9,
+  zt: 0.3,   // lowered from 0.9; GPX altitude smoothing suppresses vspeed
 };
 
 const definitionGround = {
   xmax: 5,
   zmax: 0.5,
 };
+
+// detectLaunchLanding tuning
+const MERGE_FLIGHT_GAP_MS = 180_000;  // merge stateFlight blocks < 3 min apart
+const SUSTAINED_GROUND_MS = 30_000;   // require 30 s of stateGround to confirm landing
+const LAUNCH_HSPEED_MAX   = 1.5;      // m/s: walk back to last clearly-ground speed
 
 import { Point } from 'igc-xc-score/src/foundation.js';
 
@@ -160,26 +165,74 @@ function detectGround(fixes: Fix[]) {
 }
 
 function detectLaunchLanding(fixes: Fix[]) {
+  // 1. Find contiguous stateFlight blocks.
+  const blocks: Array<{ start: number; end: number }> = [];
+  let blockStart = -1;
+  for (let i = 0; i < fixes.length; i++) {
+    if (blockStart < 0 && fixes[i].stateFlight) {
+      blockStart = i;
+    } else if (blockStart >= 0 && !fixes[i].stateFlight) {
+      blocks.push({ start: blockStart, end: i - 1 });
+      blockStart = -1;
+    }
+  }
+  if (blockStart >= 0) blocks.push({ start: blockStart, end: fixes.length - 1 });
+
+  // 2. Merge adjacent blocks whose gap is within MERGE_FLIGHT_GAP_MS.
+  //    This handles brief slow sections mid-flight that briefly drop below thresholds.
+  const merged: typeof blocks = [];
+  for (const block of blocks) {
+    const prev = merged[merged.length - 1];
+    if (
+      prev &&
+      fixes[block.start].timestamp - fixes[prev.end].timestamp <= MERGE_FLIGHT_GAP_MS
+    ) {
+      prev.end = block.end;
+    } else {
+      merged.push({ ...block });
+    }
+  }
+
+  // 3. For each merged block find launch and landing.
   const ll: Array<{ launch: number; landing: number }> = [];
-  for (let i = 0; i < fixes.length - 1; i++) {
-    if (fixes[i].stateFlight) {
-      let j: number;
-      for (j = i; j > 0 && !fixes[j].stateGround; j--);
-      const launch = j;
-      for (j = i; j < fixes.length - 2 && !fixes[j].stateGround; j++);
-      const landing = j;
-      i = j;
-      ll.push({ launch, landing });
+  for (const { start, end } of merged) {
+    // Launch: walk back from block start to the last fix where the pilot was
+    // clearly on the ground (hma < LAUNCH_HSPEED_MAX ≈ walking speed).
+    let launch = 0;
+    for (let j = start - 1; j >= 0; j--) {
+      if (fixes[j].hma! < LAUNCH_HSPEED_MAX) {
+        launch = j;
+        break;
+      }
     }
+
+    // Landing: walk forward from block end to the first stateGround fix that
+    // is sustained for at least SUSTAINED_GROUND_MS (avoids slow mid-flight
+    // sections being mistaken for a landing).
+    let landing = fixes.length - 1;
+    for (let j = end; j < fixes.length; j++) {
+      if (fixes[j].stateGround) {
+        const t0 = fixes[j].timestamp;
+        let k = j + 1;
+        while (k < fixes.length && fixes[k].stateGround) k++;
+        const duration = fixes[k - 1].timestamp - t0;
+        if (duration >= SUSTAINED_GROUND_MS || k >= fixes.length) {
+          landing = j;
+          break;
+        }
+        j = k - 1;  // not sustained — skip past this ground section
+      }
+    }
+
+    ll.push({ launch, landing });
   }
-  for (const fix of fixes) {
-    fix.onGround = true;
-  }
+
+  // 4. Mark onGround for all fixes.
+  for (const fix of fixes) fix.onGround = true;
   for (const { launch, landing } of ll) {
-    for (let i = launch + 1; i < landing; i++) {
-      fixes[i].onGround = false;
-    }
+    for (let i = launch + 1; i < landing; i++) fixes[i].onGround = false;
   }
+
   return ll;
 }
 
