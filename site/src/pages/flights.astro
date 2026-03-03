@@ -50,6 +50,7 @@ import Flightmap from "../components/Flightmap.astro";
             <th class="text-right py-2 px-3">Duration</th>
             <th class="text-right py-2 px-3">Type</th>
             <th class="text-center py-2 px-3">Map</th>
+            <th class="text-center py-2 px-2">Track</th>
           </tr>
         </thead>
         <tbody id="flights-body"></tbody>
@@ -133,6 +134,9 @@ import Flightmap from "../components/Flightmap.astro";
               View
             </button>
           </td>
+          <td class="text-center py-2 px-3">
+            ${f.source_key ? `<button class="download-track-btn text-blue-700 underline cursor-pointer" data-src="${f.source_key}">↓</button>` : ''}
+          </td>
         </tr>`
         )
         .join("");
@@ -145,6 +149,22 @@ import Flightmap from "../components/Flightmap.astro";
         btn.addEventListener("click", () => {
           const trackFile = (btn as HTMLElement).dataset.track!;
           loadTrack(trackFile);
+        });
+      });
+
+      // Wire up download buttons
+      document.querySelectorAll(".download-track-btn").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const src = (btn as HTMLElement).dataset.src!;
+          const filename = src.split("/").pop()!;
+          const res = await fetch(`${R2_PUBLIC_URL}/${src}`);
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = filename;
+          a.click();
+          URL.revokeObjectURL(url);
         });
       });
     } catch (e: any) {
