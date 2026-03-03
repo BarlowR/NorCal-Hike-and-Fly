@@ -1,0 +1,15 @@
+{
+  "file": "tests/tracks/jerm20260301.gpx",
+  "description": "",
+  "created_at": "2026-03-03T02:10:27.876924+00:00",
+  "expected": [
+    {
+      "launch_time": "2026-03-01T22:43:16+00:00",
+      "landing_time": "2026-03-01T23:46:20+00:00",
+      "launch_timestamp_ms": 1772404996000.0,
+      "landing_timestamp_ms": 1772408780000.0,
+      "launch_idx": 318,
+      "landing_idx": 1696
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "file": "tests/tracks/OpenFAI.igc",
+  "description": "",
+  "created_at": "2026-03-03T02:34:18.715879+00:00",
+  "expected": [
+    {
+      "launch_time": "2025-09-26T16:36:30+00:00",
+      "landing_time": "2025-09-26T17:12:45+00:00",
+      "launch_timestamp_ms": 1758904590000.0,
+      "landing_timestamp_ms": 1758906765000.0,
+      "launch_idx": 4884,
+      "landing_idx": 7059
+    }
+  ]
+}

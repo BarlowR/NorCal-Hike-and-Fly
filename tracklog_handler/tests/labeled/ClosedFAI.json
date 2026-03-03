@@ -1,0 +1,15 @@
+{
+  "file": "tests/tracks/ClosedFAI.igc",
+  "description": "",
+  "created_at": "2026-03-03T02:33:46.203204+00:00",
+  "expected": [
+    {
+      "launch_time": "2025-09-27T18:23:45+00:00",
+      "landing_time": "2025-09-27T19:07:37+00:00",
+      "launch_timestamp_ms": 1758997425000.0,
+      "landing_timestamp_ms": 1759000057000.0,
+      "launch_idx": 8623,
+      "landing_idx": 11255
+    }
+  ]
+}
