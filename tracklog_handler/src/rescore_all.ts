@@ -22,6 +22,7 @@ interface FlightEntry {
   distance_km: number;
   duration_s: number;
   track_file: string;
+  source_key: string;
 }
 
 interface UserData {
@@ -131,6 +132,7 @@ async function main() {
         distance_km: result.distance_km,
         duration_s: result.duration_s,
         track_file: trackKey,
+        source_key: key,
       };
 
       if (!userFlights.has(userId)) userFlights.set(userId, []);
