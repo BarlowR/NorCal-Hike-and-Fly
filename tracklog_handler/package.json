@@ -5,6 +5,7 @@
   "scripts": {
     "build": "tsc",
     "process": "node --env-file=.env dist/process.js",
+    "rescore": "node --env-file=.env dist/rescore_all.js",
     "reset": "node --env-file=.env dist/reset_scores.js",
     "test": "node dist/run_tests.js"
   },
