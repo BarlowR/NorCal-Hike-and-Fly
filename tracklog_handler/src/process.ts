@@ -9,6 +9,7 @@ interface FlightEntry {
   distance_km: number;
   duration_s: number;
   track_file: string;
+  source_key: string;
 }
 
 interface UserData {
@@ -129,6 +130,10 @@ async function main() {
         })
       );
 
+      // Move to processed first so we can store the final key
+      const processedKey = key.replace("incoming/", "processed/");
+      await moveObject(key, processedKey);
+
       // Build flight entry
       const entry: FlightEntry = {
         id: flightId,
@@ -138,16 +143,13 @@ async function main() {
         distance_km: result.distance_km,
         duration_s: result.duration_s,
         track_file: trackKey,
+        source_key: processedKey,
       };
 
       if (!userNewFlights.has(userId)) {
         userNewFlights.set(userId, []);
       }
       userNewFlights.get(userId)!.push(entry);
-
-      // Move to processed
-      const processedKey = key.replace("incoming/", "processed/");
-      await moveObject(key, processedKey);
 
       console.log(`  Score: ${result.score.toFixed(2)}, moved to ${processedKey}`);
     } catch (err) {

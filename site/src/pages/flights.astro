@@ -50,6 +50,7 @@ import Flightmap from "../components/Flightmap.astro";
             <th class="text-right py-2 px-3">Duration</th>
             <th class="text-right py-2 px-3">Type</th>
             <th class="text-center py-2 px-3">Map</th>
+            <th class="text-center py-2 px-2">Track</th>
           </tr>
         </thead>
         <tbody id="flights-body"></tbody>
@@ -132,6 +133,9 @@ import Flightmap from "../components/Flightmap.astro";
             <button class="view-flight-btn text-blue-700 underline cursor-pointer" data-track="${f.track_file}">
               View
             </button>
+          </td>
+          <td class="text-center py-2 px-3">
+            ${f.source_key ? `<a class="text-blue-700 underline" href="${R2_PUBLIC_URL}/${f.source_key}" download>↓</a>` : ''}
           </td>
         </tr>`
         )
