@@ -7,9 +7,13 @@ const flyingColor = '#001bff';
 ---
 
 <div id="flight-map" class="w-full h-96 rounded-lg border border-gray-200 bg-gray-100 hidden"></div>
-<div id="flight-map-label" data-hikingc={hikingColor} data-flyingc={flyingColor} class="w-full text-center hidden"> 
+<div id="flight-map-label" data-hikingc={hikingColor} data-flyingc={flyingColor} class="w-full text-center hidden">
   <span class = "font-bold" style={`color: ${hikingColor}`}>   Hiking   </p>
   <span class = "font-bold" style={`color: ${flyingColor}`}>   Flying   </p>
+
+<div id="elevation-container" class="w-full hidden mt-2">
+  <canvas id="elevation-canvas" class="w-full rounded border border-gray-200 block" style="height:130px; cursor:crosshair"></canvas>
+</div>
 
 
 <link
@@ -27,8 +31,158 @@ const flyingColor = '#001bff';
   const hikingColor = mapLabel.dataset.hikingc;
   const flyingColor = mapLabel.dataset.flyingc;
 
+  const elevContainer = document.getElementById('elevation-container')!;
+  const elevCanvas = document.getElementById('elevation-canvas') as HTMLCanvasElement;
+
+  // Chart layout constants (pixels)
+  const PL = 46, PR = 8, PT = 10, PB = 20;
+
   let map: L.Map | null = null;
   let layerGroup: L.LayerGroup | null = null;
+  let posMarker: L.CircleMarker | null = null;
+  let currentFixes: any[] = [];
+  let currentIdx = 0;
+  let dragging = false;
+
+  function altOf(f: any): number {
+    return f.pressureAltitude ?? f.gpsAltitude ?? 0;
+  }
+
+  function idxFromClientX(clientX: number): number {
+    const rect = elevCanvas.getBoundingClientRect();
+    const plotW = rect.width - PL - PR;
+    const frac = Math.max(0, Math.min(1, (clientX - rect.left - PL) / plotW));
+    return Math.round(frac * (currentFixes.length - 1));
+  }
+
+  function applyIdx(idx: number) {
+    currentIdx = idx;
+    drawElevation(currentFixes, idx);
+    if (posMarker && currentFixes[idx]) {
+      posMarker.setLatLng([currentFixes[idx].latitude, currentFixes[idx].longitude]);
+    }
+  }
+
+  // Mouse events
+  elevCanvas.addEventListener('mousedown', (e) => {
+    if (!currentFixes.length) return;
+    dragging = true;
+    applyIdx(idxFromClientX(e.clientX));
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (dragging) applyIdx(idxFromClientX(e.clientX));
+  });
+  document.addEventListener('mouseup', () => { dragging = false; });
+
+  // Touch events
+  elevCanvas.addEventListener('touchstart', (e) => {
+    if (!currentFixes.length) return;
+    dragging = true;
+    applyIdx(idxFromClientX(e.touches[0].clientX));
+  }, { passive: true });
+  document.addEventListener('touchmove', (e) => {
+    if (dragging) applyIdx(idxFromClientX(e.touches[0].clientX));
+  }, { passive: true });
+  document.addEventListener('touchend', () => { dragging = false; });
+
+  window.addEventListener('resize', () => {
+    if (currentFixes.length) drawElevation(currentFixes, currentIdx);
+  });
+
+  function drawElevation(fixes: any[], cursorIdx: number) {
+    const rect = elevCanvas.getBoundingClientRect();
+    if (rect.width === 0) return;
+    elevCanvas.width = Math.floor(rect.width);
+    elevCanvas.height = Math.floor(rect.height);
+    const ctx = elevCanvas.getContext('2d')!;
+    const W = elevCanvas.width, H = elevCanvas.height;
+    const plotW = W - PL - PR, plotH = H - PT - PB;
+
+    const alts = fixes.map(altOf);
+    const minAlt = Math.min(...alts);
+    const maxAlt = Math.max(...alts);
+    const range = maxAlt - minAlt || 1;
+
+    const xOf = (i: number) => PL + (i / (fixes.length - 1)) * plotW;
+    const yOf = (alt: number) => PT + plotH - ((alt - minAlt) / range) * plotH;
+
+    // Background
+    ctx.fillStyle = '#f9fafb';
+    ctx.fillRect(0, 0, W, H);
+
+    // Grid + Y-axis labels
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#9ca3af';
+    for (let i = 0; i <= 3; i++) {
+      const alt = minAlt + (range * i) / 3;
+      const y = yOf(alt);
+      ctx.fillText(`${Math.round(alt)}m`, PL - 3, y + 3);
+      ctx.strokeStyle = '#e5e7eb';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(PL, y);
+      ctx.lineTo(W - PR, y);
+      ctx.stroke();
+    }
+
+    // Area fill
+    ctx.beginPath();
+    ctx.moveTo(xOf(0), H - PB);
+    fixes.forEach((f: any, i: number) => ctx.lineTo(xOf(i), yOf(altOf(f))));
+    ctx.lineTo(xOf(fixes.length - 1), H - PB);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(0,27,255,0.07)';
+    ctx.fill();
+
+    // Colored line (ground vs flight)
+    const hasState = fixes.some((f: any) => f.onGround !== undefined);
+    if (hasState) {
+      for (let i = 1; i < fixes.length; i++) {
+        ctx.beginPath();
+        ctx.moveTo(xOf(i - 1), yOf(altOf(fixes[i - 1])));
+        ctx.lineTo(xOf(i), yOf(altOf(fixes[i])));
+        ctx.strokeStyle = fixes[i].onGround ? (hikingColor ?? '#8856fc') : (flyingColor ?? '#001bff');
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    } else {
+      ctx.beginPath();
+      fixes.forEach((f: any, i: number) => {
+        if (i === 0) ctx.moveTo(xOf(0), yOf(altOf(f)));
+        else ctx.lineTo(xOf(i), yOf(altOf(f)));
+      });
+      ctx.strokeStyle = flyingColor ?? '#001bff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    // Cursor
+    if (cursorIdx >= 0 && cursorIdx < fixes.length) {
+      const cx = xOf(cursorIdx);
+      const cy = yOf(altOf(fixes[cursorIdx]));
+
+      ctx.setLineDash([4, 3]);
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(cx, PT);
+      ctx.lineTo(cx, H - PB);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#ef4444';
+      ctx.fill();
+
+      const label = `${Math.round(altOf(fixes[cursorIdx]))}m`;
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillStyle = '#111827';
+      ctx.textAlign = cx > W / 2 ? 'right' : 'left';
+      ctx.fillText(label, cx + (cx > W / 2 ? -8 : 8), PT + 14);
+    }
+  }
 
   function initMap() {
     if (map) return;
@@ -49,8 +203,12 @@ const flyingColor = '#001bff';
 
     mapContainer.classList.remove('hidden');
     mapLabel.classList.remove('hidden');
+    elevContainer.classList.remove('hidden');
     initMap();
     layerGroup!.clearLayers();
+
+    // Remove stale position marker from map (not layerGroup, so clearLayers won't touch it)
+    if (posMarker) { posMarker.remove(); posMarker = null; }
 
     // Draw the flight track
     const fixes = flight?.filtered || flight?.fixes;
@@ -201,6 +359,23 @@ const flyingColor = '#001bff';
 
     if (allBounds.length >= 2) {
       map!.fitBounds(L.latLngBounds(allBounds), { padding: [40, 40] });
+    }
+
+    // Elevation plot + position marker
+    if (fixes?.length) {
+      currentFixes = fixes;
+      currentIdx = 0;
+
+      posMarker = L.circleMarker([fixes[0].latitude, fixes[0].longitude], {
+        radius: 6,
+        color: '#ef4444',
+        weight: 2,
+        fillColor: '#ef4444',
+        fillOpacity: 0.85,
+      }).addTo(map!);
+
+      // Draw after layout settles so getBoundingClientRect has real dimensions
+      setTimeout(() => drawElevation(fixes, 0), 150);
     }
 
     // Fix tile rendering after container becomes visible

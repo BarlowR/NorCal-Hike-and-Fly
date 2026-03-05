@@ -63,6 +63,7 @@ import Flightmap from "../components/Flightmap.astro";
 
 <script>
   import { R2_PUBLIC_URL } from "../config";
+  import { parseFixes } from "../ts/parseFixes.ts";
 
   function formatDuration(seconds: number): string {
     const h = Math.floor(seconds / 3600);
@@ -130,7 +131,7 @@ import Flightmap from "../components/Flightmap.astro";
           <td class="text-right py-2 px-3">${formatDuration(f.duration_s)}</td>
           <td class="text-right py-2 px-3">${f.breakdown.closed ? "Closed" : "Open"} ${(f.breakdown.scoring_code || "tri").toUpperCase()}</td>
           <td class="text-center py-2 px-3">
-            <button class="view-flight-btn text-blue-700 underline cursor-pointer" data-track="${f.track_file}">
+            <button class="view-flight-btn text-blue-700 underline cursor-pointer" data-track="${f.track_file}" data-src="${f.source_key || ''}">
               View
             </button>
           </td>
@@ -148,7 +149,8 @@ import Flightmap from "../components/Flightmap.astro";
       document.querySelectorAll(".view-flight-btn").forEach((btn) => {
         btn.addEventListener("click", () => {
           const trackFile = (btn as HTMLElement).dataset.track!;
-          loadTrack(trackFile);
+          const sourceKey = (btn as HTMLElement).dataset.src || '';
+          loadTrack(trackFile, sourceKey);
         });
       });
 
@@ -174,33 +176,50 @@ import Flightmap from "../components/Flightmap.astro";
     }
   }
 
-  async function loadTrack(trackFile: string) {
+  async function loadTrack(trackFile: string, sourceKey: string) {
     try {
-      const res = await fetch(`${R2_PUBLIC_URL}/${trackFile}`, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const track = await res.json();
+      const [trackRes, sourceRes] = await Promise.all([
+        fetch(`${R2_PUBLIC_URL}/${trackFile}`, { cache: 'no-store' }),
+        sourceKey ? fetch(`${R2_PUBLIC_URL}/${sourceKey}`, { cache: 'no-store' }) : Promise.resolve(null),
+      ]);
 
+      if (!trackRes.ok) throw new Error(`HTTP ${trackRes.status}`);
+      const track = await trackRes.json();
       const td = track.trackData;
 
-      // Build detail in the format Flightmap expects
       let detail;
-      if (td) {
+
+      if (td?.flightSegments && sourceRes?.ok) {
+        // Current format: parse the source IGC/GPX and apply stored flight segments
+        const content = await sourceRes.text();
+        const fixes = parseFixes(content);
+        for (const seg of td.flightSegments) {
+          for (const fix of fixes) {
+            if (fix.timestamp >= seg.takeoffMs && fix.timestamp <= seg.landingMs) {
+              fix.onGround = false;
+            }
+          }
+        }
+        detail = {
+          flight: { fixes },
+          groundDist: td.groundDist,
+          best: { scoreInfo: td.scoreInfo, opt: { scoring: td.scoring } },
+          closed: td.closed,
+        };
+      } else if (td?.fixes) {
+        // Intermediate format: full fixes stored in trackData
         detail = {
           flight: { fixes: td.fixes },
           groundDist: td.groundDist,
-          best: {
-            scoreInfo: td.scoreInfo,
-            opt: { scoring: td.scoring },
-          },
+          best: { scoreInfo: td.scoreInfo, opt: { scoring: td.scoring } },
           closed: td.closed,
         };
       } else {
-        // Fallback for older track files that only have coordinates
+        // Oldest format: downsampled coordinates array only
         const fixes = (track.coordinates || []).map(
           (c: [number, number, number]) => ({
-            latitude: c[0],
-            longitude: c[1],
-            onGround: false,
+            latitude: c[0], longitude: c[1], gpsAltitude: c[2],
+            timestamp: 0, onGround: false,
           })
         );
         detail = {
@@ -214,9 +233,7 @@ import Flightmap from "../components/Flightmap.astro";
         };
       }
 
-      document.dispatchEvent(
-        new CustomEvent("igc-score-result", { detail })
-      );
+      document.dispatchEvent(new CustomEvent("igc-score-result", { detail }));
     } catch (e: any) {
       console.error("Failed to load track:", e);
     }

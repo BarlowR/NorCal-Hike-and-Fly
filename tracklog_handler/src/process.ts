@@ -124,7 +124,6 @@ async function main() {
       await putObject(
         trackKey,
         JSON.stringify({
-          coordinates: result.coordinates,
           trackData: result.trackData,
           start: result.date,
         })

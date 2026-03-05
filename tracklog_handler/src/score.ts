@@ -11,7 +11,7 @@ export interface ScoreBreakdown {
 }
 
 export interface TrackData {
-  fixes: { latitude: number; longitude: number; onGround: boolean }[];
+  flightSegments: { takeoffMs: number; landingMs: number }[];
   scoreInfo: { tp: any[]; cp: any; ep: any; distance: number; penalty: number };
   scoring: { code: string; multiplier: number };
   groundDist: number;
@@ -21,7 +21,6 @@ export interface TrackData {
 export interface ScoreResult {
   score: number;
   breakdown: ScoreBreakdown;
-  coordinates: [number, number, number][];
   trackData: TrackData;
   date: string;
   duration_s: number;
@@ -54,43 +53,25 @@ export async function scoreIgc(igcContent: string): Promise<ScoreResult> {
     );
   }
 
-  // Downsample coordinates to ~500 points
-  const stride = Math.max(1, Math.floor(flight.fixes.length / 500));
-  const coordinates: [number, number, number][] = [];
-  const downsampledFixes: TrackData["fixes"] = [];
-  for (let i = 0; i < flight.fixes.length; i += stride) {
-    const fix = flight.fixes[i];
-    coordinates.push([
-      fix.latitude,
-      fix.longitude,
-      fix.gpsAltitude ?? fix.pressureAltitude ?? 0,
-    ]);
-    downsampledFixes.push({
-      latitude: fix.latitude,
-      longitude: fix.longitude,
-      onGround: !!fix.onGround,
-    });
-  }
-  // Always include last fix
-  if (flight.fixes.length > 0) {
-    const last = flight.fixes[flight.fixes.length - 1];
-    const lastCoord: [number, number, number] = [
-      last.latitude,
-      last.longitude,
-      last.gpsAltitude ?? last.pressureAltitude ?? 0,
-    ];
-    if (
-      coordinates.length === 0 ||
-      coordinates[coordinates.length - 1][0] !== lastCoord[0] ||
-      coordinates[coordinates.length - 1][1] !== lastCoord[1]
-    ) {
-      coordinates.push(lastCoord);
-      downsampledFixes.push({
-        latitude: last.latitude,
-        longitude: last.longitude,
-        onGround: !!last.onGround,
-      });
+  // Compute flight segments (takeoff/landing timestamps) from analyzed fixes.
+  // Using timestamps rather than indexes so the client can apply them to the
+  // raw IGC/GPX (which may include fixes outside the 8am-5pm time window).
+  const analyzedFixes: any[] = (flight as any).filtered ?? flight.fixes;
+  const flightSegments: TrackData["flightSegments"] = [];
+  let inFlight = false;
+  let takeoffMs = 0;
+  for (let i = 0; i < analyzedFixes.length; i++) {
+    const airborne = !analyzedFixes[i].onGround;
+    if (!inFlight && airborne) {
+      inFlight = true;
+      takeoffMs = analyzedFixes[i].timestamp;
+    } else if (inFlight && !airborne) {
+      inFlight = false;
+      flightSegments.push({ takeoffMs, landingMs: analyzedFixes[i - 1].timestamp });
     }
+  }
+  if (inFlight) {
+    flightSegments.push({ takeoffMs, landingMs: analyzedFixes[analyzedFixes.length - 1].timestamp });
   }
 
   // Extract plain objects from Point class instances for JSON serialization
@@ -112,7 +93,7 @@ export async function scoreIgc(igcContent: string): Promise<ScoreResult> {
     : null;
 
   const trackData: TrackData = {
-    fixes: downsampledFixes,
+    flightSegments,
     scoreInfo: {
       tp: rawTp,
       cp: rawCp,
@@ -138,7 +119,6 @@ export async function scoreIgc(igcContent: string): Promise<ScoreResult> {
       closed,
       scoring_code: best.opt.scoring.code,
     },
-    coordinates,
     trackData,
     date,
     duration_s,
