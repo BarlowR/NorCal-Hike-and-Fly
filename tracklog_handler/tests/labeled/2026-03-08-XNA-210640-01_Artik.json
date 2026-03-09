@@ -1,0 +1,23 @@
+{
+  "file": "tests/tracks/2026-03-08-XNA-210640-01_Artik.igc",
+  "description": "Carlos Enciso 2026-03-08 — HFTZNTIMEZONE local-time IGC",
+  "created_at": "2026-03-09T22:30:21.457Z",
+  "expected": [
+    {
+      "launch_time": "2026-03-08T19:39:28.000Z",
+      "landing_time": "2026-03-08T19:51:53.000Z",
+      "launch_timestamp_ms": 1772998768000,
+      "landing_timestamp_ms": 1772999513000,
+      "launch_idx": 7599,
+      "landing_idx": 8344
+    },
+    {
+      "launch_time": "2026-03-08T21:37:22.000Z",
+      "landing_time": "2026-03-08T22:12:48.000Z",
+      "launch_timestamp_ms": 1773005842000,
+      "landing_timestamp_ms": 1773007968000,
+      "launch_idx": 14673,
+      "landing_idx": 16799
+    }
+  ]
+}
