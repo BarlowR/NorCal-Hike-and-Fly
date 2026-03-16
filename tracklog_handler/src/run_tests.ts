@@ -16,6 +16,7 @@ import { fileURLToPath } from "url";
 import IGCParser from "igc-parser";
 import { analyze } from "./analyze_flight.js";
 import { parseGpx } from "./gpx_parser.js";
+import { igcTimeZone, filterByTimeWindow, COMPETITION_START_HOUR, COMPETITION_END_HOUR } from "./hf_scoring.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(__dirname, "..");
@@ -42,9 +43,12 @@ interface TestCase {
 function loadFlight(trackPath: string) {
   const content = readFileSync(trackPath, "utf8");
   const isGpx = content.trimStart().startsWith("<");
-  return isGpx
+  const flight = isGpx
     ? parseGpx(content)
     : IGCParser.parse(content, { lenient: true });
+  const tz = !isGpx ? igcTimeZone(content) : null;
+  if (tz) flight.fixes = filterByTimeWindow(flight.fixes, tz, COMPETITION_START_HOUR, COMPETITION_END_HOUR);
+  return flight;
 }
 
 function resolveTrackPath(testCase: TestCase): string {

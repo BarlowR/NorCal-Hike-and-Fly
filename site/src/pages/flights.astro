@@ -64,6 +64,7 @@ import Flightmap from "../components/Flightmap.astro";
 <script>
   import { R2_PUBLIC_URL } from "../config";
   import { parseFixes } from "../ts/parseFixes.ts";
+  import { igcTimeZone, filterByTimeWindow, COMPETITION_START_HOUR, COMPETITION_END_HOUR } from "../ts/hf_scoring.ts";
 
   function formatDuration(seconds: number): string {
     const h = Math.floor(seconds / 3600);
@@ -192,7 +193,10 @@ import Flightmap from "../components/Flightmap.astro";
       if (td?.flightSegments && sourceRes?.ok) {
         // Current format: parse the source IGC/GPX and apply stored flight segments
         const content = await sourceRes.text();
-        const fixes = parseFixes(content);
+        let fixes = parseFixes(content);
+        const tz = igcTimeZone(content);
+        if (tz) fixes = filterByTimeWindow(fixes, tz, COMPETITION_START_HOUR, COMPETITION_END_HOUR);
+
         for (const seg of td.flightSegments) {
           for (const fix of fixes) {
             if (fix.timestamp >= seg.takeoffMs && fix.timestamp <= seg.landingMs) {
