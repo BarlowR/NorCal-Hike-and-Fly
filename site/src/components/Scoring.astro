@@ -139,7 +139,7 @@
     addResult('Type', type ?? '—');
     addResult('Score', result.score.toFixed(2) ?? '—');
     if (result.filteredByTime){
-      addResult('', "Filtered By Time");
+      addResult('', "Filtered by time, track started before 8am or ended after 5pm");
     }
     if (tooOld) {
       addResult('', `Flight is ${Math.floor(daysSince)} days old — uploads must be within 7 days`);

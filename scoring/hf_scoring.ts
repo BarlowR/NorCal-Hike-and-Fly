@@ -3,6 +3,42 @@ import { solver, scoringRules as scoring } from 'igc-xc-score';
 import { analyze } from './analyze_flight.js';
 import { parseGpx } from './gpx_parser.js';
 import { Point } from 'igc-xc-score/src/foundation.js';
+export const COMPETITION_START_HOUR = 8;   // 8:00 AM local
+export const COMPETITION_END_HOUR   = 17;  // 5:00 PM local
+
+/**
+ * Parse the HFTZNTIMEZONE header from an IGC file and return an Etc/GMT
+ * timezone string (e.g. "Etc/GMT+7" for UTC-7), or null if not present.
+ */
+export function igcTimeZone(content: string): string | null {
+    const match = content.match(/^HFTZNTIMEZONE:\s*([+-]?\d+(?:\.\d+)?)/m);
+    if (!match) return null;
+    const hours = parseFloat(match[1]);
+    // Etc/GMT sign is inverted: UTC-7 → Etc/GMT+7
+    const sign = hours >= 0 ? '-' : '+';
+    return `Etc/GMT${sign}${Math.abs(Math.round(hours))}`;
+}
+
+/**
+ * Filter fixes to only those whose local hour falls within [startHour, endHour).
+ */
+export function filterByTimeWindow<T extends { timestamp: number }>(
+    fixes: T[],
+    timeZone: string,
+    startHour: number,
+    endHour: number,
+): T[] {
+    const fmt = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        hourCycle: 'h23',
+        hour: 'numeric',
+    });
+    return fixes.filter(fix => {
+        const parts = fmt.formatToParts(new Date(fix.timestamp));
+        const h = parseInt(parts.find((p: Intl.DateTimeFormatPart) => p.type === 'hour')!.value);
+        return h >= startHour && h < endHour;
+    });
+}
 
 async function getTimezone(lat: number, lon: number): Promise<string> {
     try {
@@ -23,41 +59,20 @@ async function score(file_contents: string) {
             ? parseGpx(file_contents)
             : IGCParser.parse(file_contents, { lenient: true })) as any;
 
-        // Determine timezone for the 8am-5pm filter.
-        // IGC B-records are always UTC. HFTZNTIMEZONE (e.g. -7.0) tells us the
-        // pilot's local UTC offset — use it directly without shifting timestamps.
-        let timeZone: string;
-        const tznMatch = !isGpx && file_contents.match(/^HFTZNTIMEZONE:\s*([+-]?\d+(?:\.\d+)?)/m);
-        if (tznMatch) {
-            const tzOffsetHours = parseFloat(tznMatch[1]);
-            // Etc/GMT sign is inverted: UTC-7 → Etc/GMT+7
-            const sign = tzOffsetHours >= 0 ? '-' : '+';
-            timeZone = `Etc/GMT${sign}${Math.abs(Math.round(tzOffsetHours))}`;
-            console.log(`  IGC HFTZNTIMEZONE: ${tzOffsetHours}h, using ${timeZone}`);
-        } else {
-            // Fall back to API lookup using first fix with valid coordinates
+        // Determine timezone and filter fixes to 8am–5pm local time.
+        const tz = !isGpx ? igcTimeZone(file_contents) : null;
+        const timeZone = tz ?? await (async () => {
             const validFix = flight.fixes.find((f: any) => f.latitude !== 0 || f.longitude !== 0)
                 ?? flight.fixes[0];
-            timeZone = await getTimezone(validFix.latitude, validFix.longitude);
-        }
+            return getTimezone(validFix.latitude, validFix.longitude);
+        })();
 
         const initialLength = flight.fixes.length;
         console.log(`  Timezone: ${timeZone}`);
         console.log(`  Total fixes: ${initialLength}`);
-        const firstFixDate = new Date(flight.fixes[0].timestamp);
-        console.log(`  First fix UTC: ${firstFixDate.toISOString()}`);
+        console.log(`  First fix UTC: ${new Date(flight.fixes[0].timestamp).toISOString()}`);
 
-        // Filter fixes to 8am - 5pm local time
-        const hourFormatter = new Intl.DateTimeFormat('en-US', {
-            timeZone,
-            hourCycle: 'h23',
-            hour: 'numeric',
-        });
-        flight.fixes = flight.fixes.filter((fix: any) => {
-            const parts = hourFormatter.formatToParts(new Date(fix.timestamp));
-            const localHour = parseInt(parts.find((p: Intl.DateTimeFormatPart) => p.type === 'hour')!.value);
-            return localHour >= 8 && localHour < 17;
-        });
+        flight.fixes = filterByTimeWindow(flight.fixes, timeZone, COMPETITION_START_HOUR, COMPETITION_END_HOUR);
 
         const filteredLength = flight.fixes.length;
         let filteredByTime = false;
