@@ -10,7 +10,7 @@
  */
 
 import { listObjects, getObject, putObject } from "./r2.js";
-import { scoreIgc, type ScoreResult } from "./score.js";
+import { scoreIgc, computeFriendsBonus, FRIENDS_MULTIPLIER, type ScoreResult, type FlightRef } from "./score.js";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 
@@ -23,6 +23,8 @@ interface FlightEntry {
   duration_s: number;
   track_file: string;
   source_key: string;
+  launch_lat: number;
+  launch_lon: number;
 }
 
 interface UserData {
@@ -132,6 +134,8 @@ async function main() {
         duration_s: result.duration_s,
         track_file: trackKey,
         source_key: key,
+        launch_lat: result.launch_lat,
+        launch_lon: result.launch_lon,
       };
 
       if (!userFlights.has(userId)) userFlights.set(userId, []);
@@ -146,6 +150,29 @@ async function main() {
   }
 
   console.log(`\nScored: ${ok} ok, ${failed} failed\n`);
+
+  // Compute friends bonus across all flights
+  console.log("Computing friends bonus...");
+  const allFlightRefs: FlightRef[] = [];
+  for (const [userId, flights] of userFlights) {
+    for (const flight of flights) {
+      allFlightRefs.push({
+        id: `${userId}/${flight.id}`,
+        date: flight.date,
+        launch_lat: flight.launch_lat,
+        launch_lon: flight.launch_lon,
+      });
+    }
+  }
+  const qualifying = computeFriendsBonus(allFlightRefs);
+  console.log(`  ${qualifying.size} qualifying flight(s)\n`);
+
+  for (const [userId, flights] of userFlights) {
+    for (const flight of flights) {
+      flight.breakdown.friends_bonus = qualifying.has(`${userId}/${flight.id}`);
+      flight.score = flight.breakdown.base_score * (flight.breakdown.friends_bonus ? FRIENDS_MULTIPLIER : 1);
+    }
+  }
 
   // Write updated user files
   console.log("Writing user files...");
