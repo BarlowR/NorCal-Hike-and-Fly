@@ -256,6 +256,9 @@ async function runTests(): Promise<void> {
             );
         }
       }
+    } else {
+      console.log(`  SKIP scoring — no scoring found in test case`);
+      totalSkipped++;
     }
 
     if (casePassed) {
