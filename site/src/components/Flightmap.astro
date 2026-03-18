@@ -210,8 +210,10 @@ const flyingColor = '#001bff';
     // Remove stale position marker from map (not layerGroup, so clearLayers won't touch it)
     if (posMarker) { posMarker.remove(); posMarker = null; }
 
-    // Draw the flight track
-    const fixes = flight?.filtered || flight?.fixes;
+    // Draw the flight track (drop invalid 0,0 GPS records)
+    const fixes = (flight?.filtered || flight?.fixes)?.filter(
+      (f: any) => f.latitude !== 0 || f.longitude !== 0
+    );
     if (fixes?.length) {
       type Fix = {
         latitude: number;
