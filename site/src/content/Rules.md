@@ -61,7 +61,7 @@ An additional multiplier of 1.5 is added if at least four tracklogs are submitte
   class="w-full object-cover rounded-xl shadow-lg"
 />
 
-<p> 32.53km Hiking Distance </p>
+<p> 32.50km Hiking Distance </p>
 <p> 29.30km Triangle Perimeter </p>
 <p>  3.21km Closing Distance </p>
 
@@ -69,9 +69,9 @@ An additional multiplier of 1.5 is added if at least four tracklogs are submitte
 
 <p> Triangle Perimeter: 29.30 </p>
 <p> Closing Distance Penalty: -(2 * 3.21)   </p>
-<p> Hiking Distance Bonus: +32.53    </p>
+<p> Hiking Distance Bonus: +32.50    </p>
 <p> Closed FAI Multiplier: x1.6 </p>
-<p class = "font-bold"> Final Score: 88.65 </p>
+<p class = "font-bold"> Final Score: 88.61 </p>
 Note: This track began before 8am, so it was truncated to begin at 8am
 
 ### Example 2: Flying Open FAI ([tracklog](/example_igc/OpenFAI.igc))
@@ -80,7 +80,7 @@ Note: This track began before 8am, so it was truncated to begin at 8am
   src="/images/OpenFAI.png"
   class="w-full object-cover rounded-xl shadow-lg"
 />
-<p> 8.25km Hiking Distance </p>
+<p> 8.17km Hiking Distance </p>
 <p> 29.96km Triangle Perimeter </p>
 <p>  7.05km Closing Distance </p>
 
@@ -88,9 +88,9 @@ Note: This track began before 8am, so it was truncated to begin at 8am
 
 <p> Triangle Perimeter: 29.96 </p>
 <p> Closing Distance Penalty: -(2 * 7.05)   </p>
-<p> Hiking Distance Bonus: +8.25    </p>
+<p> Hiking Distance Bonus: +8.17    </p>
 <p> Open FAI Multiplier: x1.4 </p>
-<p class = "font-bold"> Final Score: 38.57 </p>
+<p class = "font-bold"> Final Score: 33.64 </p>
 
 ### Example 3: Open Distance ([tracklog](/example_igc/OpenTRI.igc))
 
@@ -98,7 +98,7 @@ Note: This track began before 8am, so it was truncated to begin at 8am
   src="/images/OpenTRI.png"
   class="w-full object-cover rounded-xl shadow-lg"
 />
-<p> 15.50km Hiking Distance </p>
+<p> 15.54km Hiking Distance </p>
 <p> 136.43km Triangle Perimeter </p>
 <p>  64.31km Closing Distance </p>
 
@@ -106,6 +106,6 @@ Note: This track began before 8am, so it was truncated to begin at 8am
 
 <p> Triangle Perimeter: 136.43 </p>
 <p> Closing Distance Penalty: -(2 * 64.31)   </p>
-<p> Hiking Distance Bonus: +15.50    </p>
+<p> Hiking Distance Bonus: +15.54    </p>
 <p> Open Flat Triangle Multiplier: x1.2 </p>
-<p class = "font-bold"> Final Score: 32.64 </p>
+<p class = "font-bold"> Final Score: 28.03 </p>

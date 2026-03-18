@@ -52,7 +52,7 @@ async function getTimezone(lat: number, lon: number): Promise<string> {
     }
 }
 
-async function score(file_contents: string) {
+export async function scoreTrack(file_contents: string) {
     try {
         const isGpx = file_contents.trimStart().startsWith('<');
         const flight = (isGpx
@@ -127,10 +127,17 @@ async function score(file_contents: string) {
         score -= (penalty * 2);
         // Hiking Bonus
         score += (groundDist);
-        // Triangle Multiplier
-        score *= best.opt.scoring.multiplier;
+        // Triangle Multiplier — use correct multiplier based on triangle
+        // type and our custom closing threshold (20% of perimeter distance).
+        // We can't use best.opt.scoring.multiplier directly because the solver
+        // uses a different threshold.
+        const triangleCode = best.opt.scoring.code;
+        const multiplier = triangleCode === 'fai'
+            ? (closed ? 1.6 : 1.4)
+            : (closed ? 1.4 : 1.2);
+        score *= multiplier;
 
-        console.log(`  Scoring: tri=${triangleDist.toFixed(2)} penalty=${penalty.toFixed(2)} ground=${groundDist.toFixed(2)} mult=${best.opt.scoring.multiplier} closed=${closed}`);
+        console.log(`  Scoring: tri=${triangleDist.toFixed(2)} penalty=${penalty.toFixed(2)} ground=${groundDist.toFixed(2)} mult=${multiplier} closed=${closed}`);
         console.log(`  Final score: ${score.toFixed(2)} (optimal=${best.optimal}, cycles=${cycles})`);
 
         return { best: best, flight: flight, groundDist: groundDist, closed: closed, score: score, filteredByTime: filteredByTime };
@@ -138,5 +145,3 @@ async function score(file_contents: string) {
         console.error(e);
     }
 }
-
-export { score };

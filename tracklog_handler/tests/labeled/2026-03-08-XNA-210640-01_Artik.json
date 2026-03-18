@@ -1,7 +1,13 @@
 {
   "file": "tests/tracks/2026-03-08-XNA-210640-01_Artik.igc",
-  "description": "Carlos Enciso 2026-03-08 — HFTZNTIMEZONE local-time IGC",
+  "description": "Carlos Enciso 2026-03-08 \u2014 HFTZNTIMEZONE local-time IGC",
   "created_at": "2026-03-09T22:30:21.457Z",
+  "scoring": {
+    "expected_score": 37.01,
+    "score_tolerance": 0.5,
+    "triangle_code": "tri",
+    "closed": true
+  },
   "expected": [
     {
       "launch_time": "2026-03-08T19:39:28.000Z",

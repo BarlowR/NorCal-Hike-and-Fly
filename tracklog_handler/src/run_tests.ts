@@ -16,7 +16,7 @@ import { fileURLToPath } from "url";
 import IGCParser from "igc-parser";
 import { analyze } from "./analyze_flight.js";
 import { parseGpx } from "./gpx_parser.js";
-import { igcTimeZone, filterByTimeWindow, COMPETITION_START_HOUR, COMPETITION_END_HOUR } from "./hf_scoring.js";
+import { igcTimeZone, filterByTimeWindow, scoreTrack, COMPETITION_START_HOUR, COMPETITION_END_HOUR } from "./hf_scoring.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(__dirname, "..");
@@ -33,9 +33,17 @@ interface ExpectedSegment {
   landing_idx: number;
 }
 
+interface ExpectedScoring {
+  expected_score: number;
+  score_tolerance: number;
+  triangle_code: string;
+  closed: boolean;
+}
+
 interface TestCase {
   file: string;
   description?: string;
+  scoring?: ExpectedScoring;
   expected: ExpectedSegment[];
   algorithm_detected?: unknown[];
 }
@@ -198,6 +206,59 @@ async function runTests(): Promise<void> {
           );
         }
       }
+    }
+
+    // Run scoring check if test case has a scoring expectation
+    if (testCase.scoring) {
+      const exp = testCase.scoring;
+      let fileContents: string;
+      try {
+        fileContents = readFileSync(trackPath, "utf8");
+      } catch (e) {
+        console.log(`  SKIP scoring — could not read track: ${e}`);
+        totalSkipped++;
+        continue;
+      }
+
+      let result: Awaited<ReturnType<typeof scoreTrack>>;
+      try {
+        result = await scoreTrack(fileContents);
+      } catch (e) {
+        console.log(`  FAIL scoring — scoreTrack() threw: ${e}`);
+        casePassed = false;
+        result = undefined;
+      }
+
+      if (result) {
+        const scoreDiff = Math.abs(result.score - exp.expected_score);
+        const scoreOk = scoreDiff <= exp.score_tolerance;
+        const codeOk = result.best.opt.scoring.code === exp.triangle_code;
+        const closedOk = result.closed === exp.closed;
+
+        if (scoreOk && codeOk && closedOk) {
+          console.log(
+            `  ✓ Scoring: score=${result.score.toFixed(2)} (expected ${exp.expected_score}, diff ${scoreDiff.toFixed(4)}), code=${result.best.opt.scoring.code}, closed=${result.closed}`
+          );
+        } else {
+          casePassed = false;
+          console.log(`  ✗ Scoring:`);
+          if (!scoreOk)
+            console.log(
+              `    Score    expected ${exp.expected_score} ± ${exp.score_tolerance}, got ${result.score.toFixed(4)} (diff ${scoreDiff.toFixed(4)})`
+            );
+          if (!codeOk)
+            console.log(
+              `    Code     expected ${exp.triangle_code}, got ${result.best.opt.scoring.code}`
+            );
+          if (!closedOk)
+            console.log(
+              `    Closed   expected ${exp.closed}, got ${result.closed}`
+            );
+        }
+      }
+    } else {
+      console.log(`  SKIP scoring — no scoring found in test case`);
+      totalSkipped++;
     }
 
     if (casePassed) {

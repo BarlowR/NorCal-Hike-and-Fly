@@ -2,6 +2,12 @@
   "file": "tests/tracks/OpenTRI.igc",
   "description": "",
   "created_at": "2026-03-03T02:35:54.350758+00:00",
+  "scoring": {
+    "expected_score": 28.03,
+    "score_tolerance": 0.5,
+    "triangle_code": "tri",
+    "closed": false
+  },
   "expected": [
     {
       "launch_time": "2025-09-25T18:40:40+00:00",
