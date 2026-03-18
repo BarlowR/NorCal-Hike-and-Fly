@@ -1,5 +1,5 @@
 import { Point } from "igc-xc-score/src/foundation.js";
-import { score } from "./hf_scoring.js";
+import { scoreTrack } from "./hf_scoring.js";
 
 export interface ScoreBreakdown {
   triangle_km: number;
@@ -28,7 +28,7 @@ export interface ScoreResult {
 }
 
 export async function scoreIgc(igcContent: string): Promise<ScoreResult> {
-  const result = await score(igcContent);
+  const result = await scoreTrack(igcContent);
   if (!result) {
     throw new Error("Scoring failed");
   }

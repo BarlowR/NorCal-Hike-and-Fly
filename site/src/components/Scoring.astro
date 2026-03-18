@@ -64,7 +64,7 @@
 </div>
 
 <script>
-  import { score } from "../ts/hf_scoring.ts"
+  import { scoreTrack } from "../ts/hf_scoring.ts"
 
   const input = document.getElementById('igc-input') as HTMLInputElement;
   const dropZone = document.getElementById('drop-zone')!;
@@ -112,7 +112,7 @@
   async function scoreFile(contents: string){
     showStatus('Scoring flight…');
 
-    const result = await score(contents);
+    const result = await scoreTrack(contents);
 
 
     if (!result){
