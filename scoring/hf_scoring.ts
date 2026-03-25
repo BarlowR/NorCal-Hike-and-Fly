@@ -72,6 +72,7 @@ export async function scoreTrack(file_contents: string) {
         console.log(`  Total fixes: ${initialLength}`);
         console.log(`  First fix UTC: ${new Date(flight.fixes[0].timestamp).toISOString()}`);
 
+        const originalFirstFix = flight.fixes[0];
         flight.fixes = filterByTimeWindow(flight.fixes, timeZone, COMPETITION_START_HOUR, COMPETITION_END_HOUR);
 
         const filteredLength = flight.fixes.length;
@@ -79,6 +80,17 @@ export async function scoreTrack(file_contents: string) {
         if (filteredLength < initialLength)
             filteredByTime = true;
         console.log(`  Fixes after time filter: ${filteredLength} (removed ${initialLength - filteredLength})`);
+
+        if (filteredLength === 0) {
+            const fmt = new Intl.DateTimeFormat('en-US', {
+                timeZone,
+                hourCycle: 'h23',
+                hour: '2-digit',
+                minute: '2-digit',
+            });
+            const localTime = fmt.format(new Date(originalFirstFix.timestamp));
+            return { outOfTimeWindow: true as const, timeZone, localTime };
+        }
 
         const triangleScoringRules = (scoring as any).XContest
             .filter((r: any) => r.code === 'tri' || r.code === 'fai')

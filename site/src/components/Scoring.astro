@@ -119,6 +119,10 @@
       showStatus('Error scoring file.');
       return;
     }
+    if ('outOfTimeWindow' in result) {
+      showStatus(`Track starts at ${result.localTime} local (${result.timeZone}) — outside the competition window.`, true);
+      return;
+    }
 
     // Check flight age
     const firstFix = result.flight.fixes[0];
