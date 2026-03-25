@@ -92,6 +92,13 @@ export async function scoreTrack(file_contents: string) {
             return { outOfTimeWindow: true as const, timeZone, localTime };
         }
 
+        const windowMs = (COMPETITION_END_HOUR - COMPETITION_START_HOUR) * 3600 * 1000;
+        const trackDurationMs = flight.fixes[filteredLength - 1].timestamp - flight.fixes[0].timestamp;
+        if (trackDurationMs > windowMs) {
+            const durationH = +(trackDurationMs / 3_600_000).toFixed(1);
+            return { tooLong: true as const, durationH };
+        }
+
         const triangleScoringRules = (scoring as any).XContest
             .filter((r: any) => r.code === 'tri' || r.code === 'fai')
             .map((r: any) => ({

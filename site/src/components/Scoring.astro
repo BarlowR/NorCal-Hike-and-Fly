@@ -123,6 +123,10 @@
       showStatus(`Track starts at ${result.localTime} local (${result.timeZone}) — outside the competition window.`, true);
       return;
     }
+    if ('tooLong' in result) {
+      showStatus(`Track spans ${(result as any).durationH} hours — longer than the 9-hour competition window (8am–5pm).`, true);
+      return;
+    }
 
     // Check flight age
     const firstFix = result.flight.fixes[0];

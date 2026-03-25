@@ -32,6 +32,12 @@ export async function scoreIgc(igcContent: string): Promise<ScoreResult> {
   if (!result) {
     throw new Error("Scoring failed");
   }
+  if ('outOfTimeWindow' in result) {
+    throw new Error(`Track is outside the competition window`);
+  }
+  if ('tooLong' in result) {
+    throw new Error(`Track is too long (${result.durationH}h, max 9h)`);
+  }
 
   const { best, flight, groundDist, closed, score: flightScore } = result;
 
