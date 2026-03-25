@@ -44,6 +44,7 @@ interface TestCase {
   file: string;
   description?: string;
   scoring?: ExpectedScoring;
+  expected_rejection?: string;
   expected: ExpectedSegment[];
   algorithm_detected?: unknown[];
 }
@@ -208,9 +209,8 @@ async function runTests(): Promise<void> {
       }
     }
 
-    // Run scoring check if test case has a scoring expectation
-    if (testCase.scoring) {
-      const exp = testCase.scoring;
+    // Run scoring / rejection check if test case has a scoring or rejection expectation
+    if (testCase.scoring || testCase.expected_rejection) {
       let fileContents: string;
       try {
         fileContents = readFileSync(trackPath, "utf8");
@@ -229,30 +229,39 @@ async function runTests(): Promise<void> {
         result = undefined;
       }
 
-      if (result) {
-        const scoreDiff = Math.abs(result.score - exp.expected_score);
+      if (testCase.expected_rejection) {
+        const rejected = result && testCase.expected_rejection in result;
+        if (rejected) {
+          console.log(`  ✓ Rejection: ${testCase.expected_rejection}`);
+        } else {
+          casePassed = false;
+          console.log(`  ✗ Expected rejection "${testCase.expected_rejection}", got: ${JSON.stringify(result)}`);
+        }
+      } else if (testCase.scoring && result) {
+        const exp = testCase.scoring;
+        const scoreDiff = Math.abs((result as any).score - exp.expected_score);
         const scoreOk = scoreDiff <= exp.score_tolerance;
-        const codeOk = result.best.opt.scoring.code === exp.triangle_code;
-        const closedOk = result.closed === exp.closed;
+        const codeOk = (result as any).best.opt.scoring.code === exp.triangle_code;
+        const closedOk = (result as any).closed === exp.closed;
 
         if (scoreOk && codeOk && closedOk) {
           console.log(
-            `  ✓ Scoring: score=${result.score.toFixed(2)} (expected ${exp.expected_score}, diff ${scoreDiff.toFixed(4)}), code=${result.best.opt.scoring.code}, closed=${result.closed}`
+            `  ✓ Scoring: score=${(result as any).score.toFixed(2)} (expected ${exp.expected_score}, diff ${scoreDiff.toFixed(4)}), code=${(result as any).best.opt.scoring.code}, closed=${(result as any).closed}`
           );
         } else {
           casePassed = false;
           console.log(`  ✗ Scoring:`);
           if (!scoreOk)
             console.log(
-              `    Score    expected ${exp.expected_score} ± ${exp.score_tolerance}, got ${result.score.toFixed(4)} (diff ${scoreDiff.toFixed(4)})`
+              `    Score    expected ${exp.expected_score} ± ${exp.score_tolerance}, got ${(result as any).score.toFixed(4)} (diff ${scoreDiff.toFixed(4)})`
             );
           if (!codeOk)
             console.log(
-              `    Code     expected ${exp.triangle_code}, got ${result.best.opt.scoring.code}`
+              `    Code     expected ${exp.triangle_code}, got ${(result as any).best.opt.scoring.code}`
             );
           if (!closedOk)
             console.log(
-              `    Closed   expected ${exp.closed}, got ${result.closed}`
+              `    Closed   expected ${exp.closed}, got ${(result as any).closed}`
             );
         }
       }

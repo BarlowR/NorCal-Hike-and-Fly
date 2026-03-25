@@ -1,0 +1,6 @@
+{
+  "file": "tests/tracks/roca-24hr.gpx",
+  "description": "24-hour merged GPX — spans two competition windows, should be rejected as too long",
+  "expected_rejection": "tooLong",
+  "expected": []
+}
