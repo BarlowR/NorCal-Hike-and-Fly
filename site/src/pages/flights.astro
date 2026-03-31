@@ -125,7 +125,7 @@ import Flightmap from "../components/Flightmap.astro";
           (f: any) => `
         <tr class="border-b border-gray-200 hover:bg-gray-50">
           <td class="py-2 px-3">${f.date}</td>
-          <td class="text-right py-2 px-3">${f.score.toFixed(1)}</td>
+          <td class="text-right py-2 px-3">${f.score.toFixed(1)}${f.breakdown?.friends_bonus ? ' 👥' : ''}</td>
           <td class="text-right py-2 px-3">${f.breakdown.triangle_km.toFixed(1)}</td>
           <td class="text-right py-2 px-3">${f.breakdown.hiking_km.toFixed(1)}</td>
           <td class="text-right py-2 px-3">${f.breakdown.penalty_km.toFixed(1)}</td>
