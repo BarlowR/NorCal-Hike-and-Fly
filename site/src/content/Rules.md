@@ -41,8 +41,7 @@ The total distance hiked is computed from the tracklog during portions when the 
 
 
 #### Triangle Multiplier
-After:
-* Triangle perimeter is calculated, closing penalty is assessed, and the hiking bonus is added, the resulting score is given a multiplier based on the triangle type and whether the triangle was considered closed. 
+After triangle perimeter is calculated, closing penalty is assessed, and the hiking bonus is added, the resulting score is given a multiplier based on the triangle type and whether the triangle was considered closed. 
 
 * Open flat triangle are given a 1.2 multiplier
 * Closed flat triangle are given a 1.4 multiplier

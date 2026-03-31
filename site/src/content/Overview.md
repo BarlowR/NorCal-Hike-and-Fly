@@ -1,9 +1,6 @@
-#### The Prologue of the 2026 NorCal Hike and Fly Contest is running from March 1st to March 31st
-Check the leaderboard to see the latest scores!
 
 
 ####  NorCal Hike and Fly Contest aims to bring folks together for friendly competition in the sport of hike and fly.  
-
 
 <div style="margin-left: 40px;">
 
@@ -13,6 +10,8 @@ Winners will be announced in EN-B, EN-C and EN-D classes.
 Prizes to be determined. Beer is likely to be involved.
 </div>
 
-
 Pilots are incentivized through scoring to join up and fly with others, but no formal events are planned. 
 
+#### The 2026 Season will run from Mar 4th through October 31st! [Register Here](https://forms.gle/wKgCkKH2WU22mMgu6)
+
+The Prologue of the 2026 NorCal Hike and Fly Contest is running from March 1st to March 31st. Check the leaderboard to see the latest scores.

@@ -7,6 +7,8 @@ The Prologue will be conducted the same as the main season contest, with the fol
 * Only a pilot's top two scores will contribute to their total score
 * Only one winner will be crowned. Divisions will exist but not be used.
 * The fly-with-friends bonus will not be used. 
+* No minimum hike
+* Start time is 8am, not 6am
 
 
 Want to join late? Send an email to [norcalhf@gmail.com](norcalhf@gmail.com)
