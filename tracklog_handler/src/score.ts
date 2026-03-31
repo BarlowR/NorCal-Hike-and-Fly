@@ -8,6 +8,8 @@ export interface ScoreBreakdown {
   multiplier: number;
   closed: boolean;
   scoring_code: string;
+  base_score: number;
+  friends_bonus: boolean;
 }
 
 export interface TrackData {
@@ -25,6 +27,56 @@ export interface ScoreResult {
   date: string;
   duration_s: number;
   distance_km: number;
+  launch_lat: number;
+  launch_lon: number;
+}
+
+export const FRIENDS_RADIUS_KM = 5;
+export const FRIENDS_MIN_GROUP = 4;
+export const FRIENDS_MULTIPLIER = 1.5;
+
+export interface FlightRef {
+  id: string;
+  date: string;
+  launch_lat: number;
+  launch_lon: number;
+}
+
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+/**
+ * Returns the set of flight IDs (as passed in FlightRef.id) that qualify for
+ * the friends group bonus: 4+ flights on the same day starting within
+ * FRIENDS_RADIUS_KM of each other.
+ */
+export function computeFriendsBonus(flights: FlightRef[]): Set<string> {
+  const qualifying = new Set<string>();
+  const byDate = new Map<string, FlightRef[]>();
+  for (const f of flights) {
+    if (f.launch_lat === 0 && f.launch_lon === 0) continue;
+    if (!byDate.has(f.date)) byDate.set(f.date, []);
+    byDate.get(f.date)!.push(f);
+  }
+  for (const dayFlights of byDate.values()) {
+    if (dayFlights.length < FRIENDS_MIN_GROUP) continue;
+    for (const f of dayFlights) {
+      const nearbyCount = dayFlights.filter(
+        (g) => g.id !== f.id && haversineKm(f.launch_lat, f.launch_lon, g.launch_lat, g.launch_lon) <= FRIENDS_RADIUS_KM
+      ).length;
+      if (nearbyCount >= FRIENDS_MIN_GROUP - 1) {
+        qualifying.add(f.id);
+      }
+    }
+  }
+  return qualifying;
 }
 
 export async function scoreIgc(igcContent: string): Promise<ScoreResult> {
@@ -124,10 +176,14 @@ export async function scoreIgc(igcContent: string): Promise<ScoreResult> {
       multiplier: best.opt.scoring.multiplier,
       closed,
       scoring_code: best.opt.scoring.code,
+      base_score: flightScore,
+      friends_bonus: false,
     },
     trackData,
     date,
     duration_s,
     distance_km: totalDistKm,
+    launch_lat: firstFix.latitude,
+    launch_lon: firstFix.longitude,
   };
 }

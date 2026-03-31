@@ -17,6 +17,7 @@ import IGCParser from "igc-parser";
 import { analyze } from "./analyze_flight.js";
 import { parseGpx } from "./gpx_parser.js";
 import { igcTimeZone, filterByTimeWindow, scoreTrack, COMPETITION_START_HOUR, COMPETITION_END_HOUR } from "./hf_scoring.js";
+import { computeFriendsBonus, FRIENDS_RADIUS_KM, FRIENDS_MIN_GROUP, type FlightRef } from "./score.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(__dirname, "..");
@@ -75,7 +76,7 @@ function fmtDiff(ms: number): string {
   return s === 0 ? "exact" : `${s > 0 ? "+" : ""}${s}s`;
 }
 
-async function runTests(): Promise<void> {
+async function runTests(): Promise<number> {
   const labeledDir = join(PROJECT_ROOT, "tests", "labeled");
 
   let jsonFiles: string[];
@@ -89,7 +90,7 @@ async function runTests(): Promise<void> {
 
   if (jsonFiles.length === 0) {
     console.log("No test cases found. Use label_tool.ipynb to create some.");
-    return;
+    return 0;
   }
 
   console.log(`\nRunning ${jsonFiles.length} test case(s)…\n`);
@@ -284,12 +285,141 @@ async function runTests(): Promise<void> {
     `Results: ${totalPassed} passed, ${totalFailed} failed, ${totalSkipped} skipped — ${total} total`
   );
 
-  if (totalFailed > 0) {
-    process.exit(1);
-  }
+  return totalFailed;
 }
 
-runTests().catch((err) => {
+function runFriendsBonusTests(): { passed: number; failed: number } {
+  console.log(`\nFriends bonus unit tests (radius=${FRIENDS_RADIUS_KM}km, min=${FRIENDS_MIN_GROUP}):\n`);
+
+  let passed = 0;
+  let failed = 0;
+
+  function check(name: string, actual: Set<string>, expectedIds: string[]) {
+    const ok =
+      actual.size === expectedIds.length &&
+      expectedIds.every((id) => actual.has(id));
+    if (ok) {
+      console.log(`  ✓ ${name}`);
+      passed++;
+    } else {
+      console.log(`  ✗ ${name}`);
+      console.log(`    Expected [${expectedIds.sort().join(", ")}]`);
+      console.log(`    Got      [${[...actual].sort().join(", ")}]`);
+      failed++;
+    }
+  }
+
+  // Coordinates at 38°N — 0.018° lat ≈ 2 km, 0.036° ≈ 4 km, 0.10° ≈ 11 km
+  const B = { lat: 38.0, lon: -120.0 };     // base
+  const N1 = { lat: 38.018, lon: -120.0 };  // ~2 km from base
+  const N2 = { lat: 38.036, lon: -120.0 };  // ~4 km from base
+  const F  = { lat: 38.10,  lon: -120.0 };  // ~11 km from base (outside 5 km of all close points)
+
+  function ref(id: string, date: string, p: { lat: number; lon: number }): FlightRef {
+    return { id, date, launch_lat: p.lat, launch_lon: p.lon };
+  }
+
+  // 1. 4 flights all within 5 km → all qualify
+  check(
+    "4 flights within 5 km on same day → all qualify",
+    computeFriendsBonus([
+      ref("a", "2026-03-01", B),
+      ref("b", "2026-03-01", N1),
+      ref("c", "2026-03-01", N2),
+      ref("d", "2026-03-01", N1),
+    ]),
+    ["a", "b", "c", "d"]
+  );
+
+  // 2. Only 3 flights → none qualify
+  check(
+    "3 flights within 5 km → none qualify (need 4)",
+    computeFriendsBonus([
+      ref("a", "2026-03-01", B),
+      ref("b", "2026-03-01", N1),
+      ref("c", "2026-03-01", N2),
+    ]),
+    []
+  );
+
+  // 3. 4 flights all >5 km apart from each other → none qualify
+  check(
+    "4 flights spread >5 km apart → none qualify",
+    computeFriendsBonus([
+      ref("a", "2026-03-01", { lat: 38.0, lon: -120.0 }),
+      ref("b", "2026-03-01", { lat: 38.1, lon: -120.0 }),
+      ref("c", "2026-03-01", { lat: 38.2, lon: -120.0 }),
+      ref("d", "2026-03-01", { lat: 38.3, lon: -120.0 }),
+    ]),
+    []
+  );
+
+  // 4. 4 close flights + 1 outlier (>5 km from all close) → only 4 qualify
+  check(
+    "4 close + 1 outlier → only close 4 qualify",
+    computeFriendsBonus([
+      ref("a", "2026-03-01", B),
+      ref("b", "2026-03-01", N1),
+      ref("c", "2026-03-01", N2),
+      ref("d", "2026-03-01", N1),
+      ref("far", "2026-03-01", F),
+    ]),
+    ["a", "b", "c", "d"]
+  );
+
+  // 5. 4 flights same area but different calendar days → none qualify
+  check(
+    "4 flights same area, different days → none qualify",
+    computeFriendsBonus([
+      ref("a", "2026-03-01", B),
+      ref("b", "2026-03-02", N1),
+      ref("c", "2026-03-03", N2),
+      ref("d", "2026-03-04", N1),
+    ]),
+    []
+  );
+
+  // 6. Two separate groups of 4 at different sites on the same day → all 8 qualify
+  check(
+    "Two groups of 4 at different sites, same day → all 8 qualify",
+    computeFriendsBonus([
+      ref("a1", "2026-03-01", { lat: 39.0,   lon: -121.0 }),
+      ref("a2", "2026-03-01", { lat: 39.018, lon: -121.0 }),
+      ref("a3", "2026-03-01", { lat: 39.036, lon: -121.0 }),
+      ref("a4", "2026-03-01", { lat: 39.018, lon: -121.0 }),
+      ref("b1", "2026-03-01", B),
+      ref("b2", "2026-03-01", N1),
+      ref("b3", "2026-03-01", N2),
+      ref("b4", "2026-03-01", N1),
+    ]),
+    ["a1", "a2", "a3", "a4", "b1", "b2", "b3", "b4"]
+  );
+
+  // 7. Flights with 0,0 coordinates are skipped
+  check(
+    "Flights with 0,0 coordinates are ignored",
+    computeFriendsBonus([
+      ref("a", "2026-03-01", { lat: 0, lon: 0 }),
+      ref("b", "2026-03-01", { lat: 0, lon: 0 }),
+      ref("c", "2026-03-01", { lat: 0, lon: 0 }),
+      ref("d", "2026-03-01", { lat: 0, lon: 0 }),
+    ]),
+    []
+  );
+
+  console.log(
+    `\nFriends bonus: ${passed} passed, ${failed} failed\n`
+  );
+  return { passed, failed };
+}
+
+async function main() {
+  const fb = runFriendsBonusTests();
+  const trackFailed = await runTests();
+  if (fb.failed > 0 || trackFailed > 0) process.exit(1);
+}
+
+main().catch((err) => {
   console.error("Test runner error:", err);
   process.exit(1);
 });

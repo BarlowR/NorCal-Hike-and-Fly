@@ -1,5 +1,5 @@
 import { listObjects, getObject, putObject, moveObject } from "./r2.js";
-import { scoreIgc, type ScoreResult } from "./score.js";
+import { scoreIgc, computeFriendsBonus, FRIENDS_MULTIPLIER, type ScoreResult, type FlightRef } from "./score.js";
 
 interface FlightEntry {
   id: string;
@@ -10,6 +10,8 @@ interface FlightEntry {
   duration_s: number;
   track_file: string;
   source_key: string;
+  launch_lat: number;
+  launch_lon: number;
 }
 
 interface UserData {
@@ -143,6 +145,8 @@ async function main() {
         duration_s: result.duration_s,
         track_file: trackKey,
         source_key: processedKey,
+        launch_lat: result.launch_lat,
+        launch_lon: result.launch_lon,
       };
 
       if (!userNewFlights.has(userId)) {
@@ -191,31 +195,69 @@ async function main() {
     }
   }
 
-  // Build leaderboard
-  console.log("Building leaderboard...");
+  // Apply friends bonus and build leaderboard
+  console.log("Computing friends bonus and building leaderboard...");
   try {
     const userKeys = await listObjects("scores/users/");
     const jsonKeys = userKeys.filter((k) => k.endsWith(".json"));
 
-    const rankings: LeaderboardEntry[] = [];
-
+    // Load all user data
+    const allUsers = new Map<string, { key: string; data: UserData }>();
     for (const userKey of jsonKeys) {
       try {
         const userData: UserData = JSON.parse(await getObject(userKey));
-        rankings.push({
-          user_id: userData.user_id,
-          display_name: userData.display_name,
-          category: userData.category || "",
-          total_score: userData.stats.total_score,
-          total_km: userData.stats.total_km,
-          total_flights: userData.stats.total_flights,
-          best_score: userData.stats.best_score,
-          last_flight:
-            userData.flights.length > 0 ? userData.flights[0].date : "",
-        });
+        allUsers.set(userData.user_id, { key: userKey, data: userData });
       } catch (err) {
         console.error(`Failed to read user file ${userKey}:`, err);
       }
+    }
+
+    // Compute friends bonus across all flights
+    const allFlightRefs: FlightRef[] = [];
+    for (const [userId, { data }] of allUsers) {
+      for (const flight of data.flights) {
+        allFlightRefs.push({
+          id: `${userId}/${flight.id}`,
+          date: flight.date,
+          launch_lat: flight.launch_lat ?? 0,
+          launch_lon: flight.launch_lon ?? 0,
+        });
+      }
+    }
+    const qualifying = computeFriendsBonus(allFlightRefs);
+    console.log(`  Friends bonus: ${qualifying.size} qualifying flight(s)`);
+
+    // Apply bonus and re-save any user files that changed
+    for (const [userId, { key, data }] of allUsers) {
+      let modified = false;
+      for (const flight of data.flights) {
+        const shouldHave = qualifying.has(`${userId}/${flight.id}`);
+        if (shouldHave !== flight.breakdown.friends_bonus) {
+          flight.score = flight.breakdown.base_score * (shouldHave ? FRIENDS_MULTIPLIER : 1);
+          flight.breakdown.friends_bonus = shouldHave;
+          modified = true;
+        }
+      }
+      if (modified) {
+        data.stats = computeStats(data.flights);
+        await putObject(key, JSON.stringify(data, null, 2));
+        console.log(`  Updated friends bonus for ${userId}`);
+      }
+    }
+
+    // Build leaderboard from updated user data
+    const rankings: LeaderboardEntry[] = [];
+    for (const [, { data }] of allUsers) {
+      rankings.push({
+        user_id: data.user_id,
+        display_name: data.display_name,
+        category: data.category || "",
+        total_score: data.stats.total_score,
+        total_km: data.stats.total_km,
+        total_flights: data.stats.total_flights,
+        best_score: data.stats.best_score,
+        last_flight: data.flights.length > 0 ? data.flights[0].date : "",
+      });
     }
 
     rankings.sort((a, b) => b.total_score - a.total_score);
@@ -229,9 +271,7 @@ async function main() {
       "scores/leaderboard.json",
       JSON.stringify(leaderboard, null, 2)
     );
-    console.log(
-      `Leaderboard updated with ${rankings.length} user(s).`
-    );
+    console.log(`Leaderboard updated with ${rankings.length} user(s).`);
   } catch (err) {
     console.error("Failed to build leaderboard:", err);
     throw err;
