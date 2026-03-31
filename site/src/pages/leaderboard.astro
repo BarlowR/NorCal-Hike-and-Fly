@@ -20,10 +20,10 @@ import Base from "../layouts/Base.astro";
             <th class="text-left py-2 px-3">#</th>
             <th class="text-left py-2 px-3">Name</th>
             <th class="text-left py-2 px-3">Division</th>
-            <th class="text-right py-2 px-3">Contest Score</th>
+            <th class="text-right py-2 px-3"><button class="sort-btn cursor-pointer hover:underline font-bold" data-key="total_score" data-label="Contest Score">Contest Score</button></th>
             <th class="text-right py-2 px-3">Best Score</th>
             <th class="text-right py-2 px-3">Flights</th>
-            <th class="text-right py-2 px-3">Total Hiked</th>
+            <th class="text-right py-2 px-3"><button class="sort-btn cursor-pointer hover:underline font-bold" data-key="total_km" data-label="Total Hiked">Total Hiked</button></th>
             <th class="text-right py-2 px-3">Last Flight</th>
           </tr>
         </thead>
@@ -36,11 +36,40 @@ import Base from "../layouts/Base.astro";
 <script>
   import { R2_PUBLIC_URL } from "../config";
 
+  let rankings: any[] = [];
+  let currentSort = "total_score";
+
+  function renderRankings(sortKey: string) {
+    currentSort = sortKey;
+    const body = document.getElementById("leaderboard-body")!;
+    const sorted = [...rankings].sort((a, b) => b[sortKey] - a[sortKey]);
+    body.innerHTML = sorted
+      .map(
+        (r: any, i: number) => `
+      <tr class="border-b border-gray-200 hover:bg-gray-50">
+        <td class="py-2 px-3">${i + 1}</td>
+        <td class="py-2 px-3"><a href="/flights?user=${r.user_id}">${r.display_name}</a></td>
+        <td class="py-2 px-3">${r.category || "—"}</td>
+        <td class="text-right py-2 px-3">${r.total_score.toFixed(1)}</td>
+        <td class="text-right py-2 px-3">${r.best_score.toFixed(1)}</td>
+        <td class="text-right py-2 px-3">${r.total_flights}</td>
+        <td class="text-right py-2 px-3">${r.total_km.toFixed(1)}</td>
+        <td class="text-right py-2 px-3">${r.last_flight || "—"}</td>
+      </tr>`
+      )
+      .join("");
+
+    document.querySelectorAll<HTMLElement>(".sort-btn").forEach((btn) => {
+      const label = btn.dataset.label!;
+      const isActive = btn.dataset.key === sortKey;
+      btn.textContent = isActive ? `${label} ▼` : label;
+    });
+  }
+
   async function loadLeaderboard() {
     const loading = document.getElementById("leaderboard-loading")!;
     const error = document.getElementById("leaderboard-error")!;
     const table = document.getElementById("leaderboard-table")!;
-    const body = document.getElementById("leaderboard-body")!;
     const updated = document.getElementById("leaderboard-updated")!;
 
     try {
@@ -49,22 +78,13 @@ import Base from "../layouts/Base.astro";
       const data = await res.json();
 
       updated.textContent = `Updated: ${new Date(data.updated_at).toLocaleDateString()}`;
+      rankings = data.rankings;
 
-      body.innerHTML = data.rankings
-        .map(
-          (r: any, i: number) => `
-        <tr class="border-b border-gray-200 hover:bg-gray-50">
-          <td class="py-2 px-3">${i + 1}</td>
-          <td class="py-2 px-3"><a href="/flights?user=${r.user_id}">${r.display_name}</a></td>
-          <td class="py-2 px-3">${r.category || "—"}</td>
-          <td class="text-right py-2 px-3">${r.total_score.toFixed(1)}</td>
-          <td class="text-right py-2 px-3">${r.best_score.toFixed(1)}</td>
-          <td class="text-right py-2 px-3">${r.total_flights}</td>
-          <td class="text-right py-2 px-3">${r.total_km.toFixed(1)}</td>
-          <td class="text-right py-2 px-3">${r.last_flight || "—"}</td>
-        </tr>`
-        )
-        .join("");
+      renderRankings(currentSort);
+
+      document.querySelectorAll<HTMLElement>(".sort-btn").forEach((btn) => {
+        btn.addEventListener("click", () => renderRankings(btn.dataset.key!));
+      });
 
       loading.classList.add("hidden");
       table.classList.remove("hidden");

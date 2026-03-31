@@ -4,7 +4,7 @@
 * If there is time in the day and you're on the ground, the best direction to go is back towards your car.
 * Hike and Fly is better with friends.
 
-### Scoring
+### Rules
 
 #### Divisions
 
@@ -12,17 +12,16 @@ Upon registration, a pilot will select a division. This should correspond to the
 
 #### Tracklog Submission for Scoring
 
-All scoring is done using .igc tracklogs. These tracklogs must contain a single track for the whole day of scoring. Tracks must start after 8am, and must conclude by 5pm. If a track begins before 8am or ends after 5pm, it will be truncated to be within these bounds. 
+All scoring is done using IGC or GPX tracklogs. These tracklogs must contain a single track for the whole day of scoring. Tracks must start after 6am, and must conclude by 5pm. If a track begins before 8am or ends after 5pm, it will be truncated to be within these bounds. 
 
-Tracklogs must be submitted within 7 days. A method of submitting tracklogs on this site will be provided.
+Tracklogs must be submitted within 7 days. Tracklogs can be submitted on the Tracklog Upload tab.
 
 #### Hiking
 
-All hiking must be performed with the same equipment set (wing, harness, reserve(s), etc.) that was used for the flying portion of the tracklog.
-
+All hiking must be performed with a full equipment set (wing, harness, reserve(s), etc.). The same equipment set must be used for the whole tracklog, including all flying portions. All tracklogs must include at least 3km of hiking (Sorry, this isn't XContest).
 
 #### Triangles
-All tracks are scored as either a flat triangle or a FAI triangle. There is no open distance scoring type. Any triangle that does not conform to the FAI specification is considered a flat triangle. Any triangle where no leg connecting vertices is shorter than 28% of the total distance is considered a FAI triangles. 
+All tracks are scored as either a flat triangle or a FAI triangle. There is no open distance scoring type. Any triangle where no leg connecting vertices is shorter than 28% of the total distance is considered a FAI triangles. Any triangle that does not conform to the FAI specification is considered a flat triangle.
 
 Triangles are calculated as 5 different points: The two closing points, and triangle vertices. The closing points are not necessarily the start and end of the tracklog, but instead are the two points on the tracklog where the triangle is closest to connecting.
 
