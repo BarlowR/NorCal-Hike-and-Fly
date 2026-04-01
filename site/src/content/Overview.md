@@ -12,6 +12,6 @@ Prizes to be determined. Beer is likely to be involved.
 
 Pilots are incentivized through scoring to join up and fly with others, but no formal events are planned. 
 
-#### The 2026 Season will run from Mar 4th through October 31st! 
+#### The 2026 Season will run from April 4th through October 31st! 
 ### >> [Register Here](https://forms.gle/wKgCkKH2WU22mMgu6) <<
 
