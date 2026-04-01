@@ -112,11 +112,22 @@ export async function scoreTrack(file_contents: string) {
         console.log(`  Filtered fixes: ${fixes.length}, onGround=true: ${onGroundCount}`);
 
         let groundDist = 0;
+        let hikingElevationGain = 0;
+        let lastGroundAlt: number | null = null;
         let filter_window = 5;
         for (let i = filter_window; i < fixes.length - filter_window; i += filter_window) {
             if (fixes[i].onGround) {
                 const dist = (new Point(fixes, i - filter_window).distanceEarth(new Point(fixes, i)));
                 groundDist += dist;
+                const alt: number | null = fixes[i].pressureAltitude ?? fixes[i].gpsAltitude;
+                if (alt !== null) {
+                    if (lastGroundAlt !== null && alt > lastGroundAlt) {
+                        hikingElevationGain += alt - lastGroundAlt;
+                    }
+                    lastGroundAlt = alt;
+                }
+            } else {
+                lastGroundAlt = null;
             }
         }
 
@@ -140,7 +151,7 @@ export async function scoreTrack(file_contents: string) {
         console.log(`  Scoring: tri=${triangleDist.toFixed(2)} penalty=${penalty.toFixed(2)} ground=${groundDist.toFixed(2)} mult=${multiplier} closed=${closed}`);
         console.log(`  Final score: ${score.toFixed(2)} (optimal=${best.optimal}, cycles=${cycles})`);
 
-        return { best: best, flight: flight, groundDist: groundDist, closed: closed, score: score, filteredByTime: filteredByTime };
+        return { best: best, flight: flight, groundDist: groundDist, hikingElevationGain: hikingElevationGain, closed: closed, score: score, filteredByTime: filteredByTime };
     } catch (e) {
         console.error(e);
     }

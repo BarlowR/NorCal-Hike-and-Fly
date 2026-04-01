@@ -5,6 +5,7 @@ export interface ScoreBreakdown {
   triangle_km: number;
   penalty_km: number;
   hiking_km: number;
+  hiking_elevation_gain: number;
   multiplier: number;
   closed: boolean;
   scoring_code: string;
@@ -85,7 +86,7 @@ export async function scoreIgc(igcContent: string): Promise<ScoreResult> {
     throw new Error("Scoring failed");
   }
 
-  const { best, flight, groundDist, closed, score: flightScore } = result;
+  const { best, flight, groundDist, hikingElevationGain, closed, score: flightScore } = result;
 
   // Date from first fix
   const firstFix = flight.fixes[0];
@@ -167,6 +168,7 @@ export async function scoreIgc(igcContent: string): Promise<ScoreResult> {
       triangle_km: best.scoreInfo?.distance ?? 0,
       penalty_km: best.scoreInfo?.penalty ?? 0,
       hiking_km: groundDist,
+      hiking_elevation_gain: hikingElevationGain,
       multiplier: best.opt.scoring.multiplier,
       closed,
       scoring_code: best.opt.scoring.code,

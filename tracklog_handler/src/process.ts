@@ -21,6 +21,7 @@ interface UserData {
   stats: {
     total_score: number;
     total_km: number;
+    total_elevation_gain: number;
     total_flights: number;
     avg_score: number;
     best_score: number;
@@ -34,6 +35,7 @@ interface LeaderboardEntry {
   category: string;
   total_score: number;
   total_km: number;
+  total_elevation_gain: number;
   total_flights: number;
   best_score: number;
   last_flight: string;
@@ -50,6 +52,7 @@ function computeStats(flights: FlightEntry[]): UserData["stats"] {
   return {
     total_score: top2.reduce((a, b) => a + b, 0),
     total_km: flights.reduce((a, f) => a + f.breakdown.hiking_km, 0),
+    total_elevation_gain: flights.reduce((a, f) => a + (f.breakdown.hiking_elevation_gain ?? 0), 0),
     total_flights: flights.length,
     avg_score: flights.length > 0 ? scores.reduce((a, b) => a + b, 0) / flights.length : 0,
     best_score: flights.length > 0 ? Math.max(...scores) : 0,
@@ -68,6 +71,7 @@ async function getExistingUserData(userId: string): Promise<UserData> {
       stats: {
         total_score: 0,
         total_km: 0,
+        total_elevation_gain: 0,
         total_flights: 0,
         avg_score: 0,
         best_score: 0,
@@ -254,6 +258,7 @@ async function main() {
         category: data.category || "",
         total_score: data.stats.total_score,
         total_km: data.stats.total_km,
+        total_elevation_gain: data.stats.total_elevation_gain ?? 0,
         total_flights: data.stats.total_flights,
         best_score: data.stats.best_score,
         last_flight: data.flights.length > 0 ? data.flights[0].date : "",
