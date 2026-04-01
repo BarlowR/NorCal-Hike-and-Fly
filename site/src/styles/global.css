@@ -27,4 +27,13 @@
   a {
     @apply text-blue-950 underline
   }
+  ul {
+    @apply list-disc pl-6 pb-2;
+  }
+  ol {
+    @apply list-decimal pl-6 pb-2;
+  }
+  li {
+    @apply pb-1;
+  }
 }

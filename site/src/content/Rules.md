@@ -4,7 +4,7 @@
 * If there is time in the day and you're on the ground, the best direction to go is back towards your car.
 * Hike and Fly is better with friends.
 
-### Rules
+### Contest Rules
 
 #### Divisions
 
@@ -12,7 +12,7 @@ Upon registration, a pilot will select a division. This should correspond to the
 
 #### Tracklog Submission for Scoring
 
-All scoring is done using IGC or GPX tracklogs. These tracklogs must contain a single track for the whole day of scoring. Tracks must start after 6am, and must conclude by 5pm. If a track begins before 8am or ends after 5pm, it will be truncated to be within these bounds. 
+All scoring is done using IGC or GPX tracklogs. These tracklogs must contain a single track for the whole day of scoring. Tracks must start after 6am, and must conclude by 6pm. If a track begins before 6am or ends after 6pm, it will be truncated to be within these bounds. 
 
 Tracklogs must be submitted within 7 days. Tracklogs can be submitted on the Tracklog Upload tab.
 
@@ -51,6 +51,15 @@ After triangle perimeter is calculated, closing penalty is assessed, and the hik
 #### Hike and Fly with Friends Bonus
 An additional multiplier of 1.5 is added if at least four tracklogs are submitted for a single day that start at the same place at the same time. I.E. go hike and fly with your friends. 
 
+### Special Categories
+
+#### Total Hiking Distance
+Total distance hiked is aggregated across all tracklogs for a pilot. At the end of the season, the pilot with the most hiking distance will win the hiking category. 
+
+#### Total Vertical
+Total vertical elevation gain while hiking is aggregated across all tracklogs for a pilot. At the end of the season, the pilot with the most vertical will win the vertical category. 
+
+### Scoring Examples
 
 ### Example 1: Long Hike Closed FAI  ([tracklog](/example_igc/ClosedFAI.igc))
 

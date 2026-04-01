@@ -1,14 +1,18 @@
-#### The Prologue is running from March 1st to March 31st. 
+#### Winners of the NorCal H&F Contest Prologue:
 
-#### Prologue Rule Changes
+1. Michael Vergalla ([152.6](https://norcalhf.com/flights?user=Mikevsoar))
+2. Steffen ([143.3](http://norcalhf.com/flights?user=sclimber))
+3. Rob Barlow ([134.5](http://norcalhf.com/flights?user=merlin-rob))
 
-The Prologue will be conducted the same as the main season contest, with the following exceptions:
+#### NorCal H&F Contest Prologue
 
-* Only a pilot's top two scores will contribute to their total score
-* Only one winner will be crowned. Divisions will exist but not be used.
-* The fly-with-friends bonus will not be used. 
-* No minimum hike
-* Start time is 8am, not 6am
+The Prologue was conducted from March 1st to 31st. The prologue was run the same as the main season contest, with the following rule changes:
 
+* Only a pilot's top two scores contribute to their total score
+* Only the top three will be crowned. Divisions will exist but not be used.
+* The fly-with-friends bonus is not be used. 
+* There is no minimum hike distance.
+* Start time is 8am, end time is 5pm.
+* There are no wing class divisions, nor hiking distance/vertical categories. 
 
-Want to join late? Send an email to [norcalhf@gmail.com](norcalhf@gmail.com)
+[Check out pictures from the prologue here!](https://photos.google.com/share/AF1QipNlfoHc7lC3QNj1l84LiBjeP-eAuzNIv8tZcQYyCXG2wo_MvTukxfNOaYCdqllizQ?key=bmNRa040bFJlVDVzakIxUXJPUHZ0LUxUYzdCRzBB)

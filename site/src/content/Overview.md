@@ -14,4 +14,4 @@ Pilots are incentivized through scoring to join up and fly with others, but no f
 
 #### The 2026 Season will run from Mar 4th through October 31st! [Register Here](https://forms.gle/wKgCkKH2WU22mMgu6)
 
-The Prologue of the 2026 NorCal Hike and Fly Contest is running from March 1st to March 31st. Check the leaderboard to see the latest scores.
+The Prologue of the 2026 NorCal Hike and Fly Contest ran from March 1st to March 31st. Check the leaderboard to see final scores!
