@@ -6,7 +6,7 @@
 
 #### NorCal H&F Contest Prologue
 
-The Prologue was conducted from March 1st to 31st. The prologue was run the same as the main season contest, with the following rule changes:
+The Prologue ran from March 1st to 31st. The prologue was run the same as the main season contest, with the following rule changes:
 
 * Only a pilot's top two scores contribute to their total score
 * Only the top three will be crowned. Divisions will exist but not be used.
