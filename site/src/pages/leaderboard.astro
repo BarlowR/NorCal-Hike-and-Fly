@@ -4,7 +4,7 @@ import Base from "../layouts/Base.astro";
 
 <Base title="Leaderboard - NorCal H&F">
   <div class="w-full max-w-4xl mx-auto p-4">
-    <h1 class="text-center">Prologue Leaderboard</h1>
+    <h1 class="text-center">2026 Leaderboard</h1>
 
     <div id="leaderboard-loading" class="text-center text-gray-500 py-8">
       Loading leaderboard...
@@ -21,10 +21,9 @@ import Base from "../layouts/Base.astro";
             <th class="text-left py-2 px-3">Name</th>
             <th class="text-left py-2 px-3">Division</th>
             <th class="text-right py-2 px-3"><button class="sort-btn cursor-pointer hover:underline font-bold" data-key="total_score" data-label="Contest Score">Contest Score</button></th>
-            <th class="text-right py-2 px-3">Best Score</th>
             <th class="text-right py-2 px-3">Flights</th>
-            <th class="text-right py-2 px-3"><button class="sort-btn cursor-pointer hover:underline font-bold" data-key="total_km" data-label="Total Hiked">Total Hiked</button></th>
-            <th class="text-right py-2 px-3"><button class="sort-btn cursor-pointer hover:underline font-bold" data-key="total_elevation_gain_m" data-label="Total Elev. Gain">Total Elev. Gain</button></th>
+            <th class="text-right py-2 px-3"><button class="sort-btn cursor-pointer hover:underline font-bold" data-key="total_km" data-label="Total Hiked">Hiked</button></th>
+            <th class="text-right py-2 px-3"><button class="sort-btn cursor-pointer hover:underline font-bold" data-key="total_elevation_gain_m" data-label="Total Vert">Total Vert</button></th>
             <th class="text-right py-2 px-3">Last Flight</th>
           </tr>
         </thead>
@@ -52,7 +51,6 @@ import Base from "../layouts/Base.astro";
         <td class="py-2 px-3"><a href="/flights?user=${r.user_id}">${r.display_name}</a></td>
         <td class="py-2 px-3">${r.category || "—"}</td>
         <td class="text-right py-2 px-3">${r.total_score.toFixed(1)}</td>
-        <td class="text-right py-2 px-3">${r.best_score.toFixed(1)}</td>
         <td class="text-right py-2 px-3">${r.total_flights}</td>
         <td class="text-right py-2 px-3">${r.total_km.toFixed(1)}</td>
         <td class="text-right py-2 px-3">${Math.round(r.total_elevation_gain_m ?? 0).toLocaleString()} m</td>
