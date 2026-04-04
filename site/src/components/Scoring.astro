@@ -136,7 +136,7 @@
     const tooShort = (result.groundDist ?? 0) < 3;
 
     // Check flight is within the contest window (March)
-    const outsideContest = flightDate.getMonth() !== 2;
+    const outsideContest = (flightDate.getMonth() > 2) && (flightDate.getMonth() < 10);
 
     // Display results
     resultsList.innerHTML = '';
@@ -157,7 +157,7 @@
       addResult('', `Flight is ${Math.floor(daysSince)} days old — uploads must be within 7 days`);
     }
     if (outsideContest) {
-      addResult('', `Flight date is ${flightDate.toLocaleDateString()} — only March flights are eligible for the prologue`);
+      addResult('', `Flight date is ${flightDate.toLocaleDateString()} — only April-October flights are eligible`);
     }
 
     results.classList.remove('hidden');
