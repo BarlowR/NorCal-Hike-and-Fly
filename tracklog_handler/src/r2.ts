@@ -127,6 +127,22 @@ export async function putObject(
   );
 }
 
+export async function copyObject(from: string, to: string): Promise<void> {
+  if (localDir) {
+    const dst = localPath(to);
+    mkdirSync(dirname(dst), { recursive: true });
+    copyFileSync(localPath(from), dst);
+    return;
+  }
+  await client!.send(
+    new CopyObjectCommand({
+      Bucket: bucket,
+      CopySource: `${bucket}/${from}`,
+      Key: to,
+    })
+  );
+}
+
 export async function moveObject(from: string, to: string): Promise<void> {
   if (localDir) return localMoveObject(from, to);
 

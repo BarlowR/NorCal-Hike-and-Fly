@@ -4,7 +4,7 @@ import Base from "../layouts/Base.astro";
 
 <Base title="Leaderboard - NorCal H&F">
   <div class="w-full max-w-4xl mx-auto p-4">
-    <h1 class="text-center">2026 Leaderboard</h1>
+    <h1 id="leaderboard-title" class="text-center">Leaderboard</h1>
 
     <div id="leaderboard-loading" class="text-center text-gray-500 py-8">
       Loading leaderboard...
@@ -36,6 +36,14 @@ import Base from "../layouts/Base.astro";
 <script>
   import { R2_PUBLIC_URL } from "../config";
 
+  const params = new URLSearchParams(window.location.search);
+  const season = params.get("season") ?? "2026";
+  const prefix = `${season}/`;
+  const flightsSuffix = `&season=${season}`;
+
+  document.getElementById("leaderboard-title")!.textContent =
+    season === "prologue" ? "Prologue Leaderboard" : `${season} Leaderboard`;
+
   let rankings: any[] = [];
   let currentSort = "total_score";
 
@@ -48,7 +56,7 @@ import Base from "../layouts/Base.astro";
         (r: any, i: number) => `
       <tr class="border-b border-gray-200 hover:bg-gray-50">
         <td class="py-2 px-3">${i + 1}</td>
-        <td class="py-2 px-3"><a href="/flights?user=${r.user_id}">${r.display_name}</a></td>
+        <td class="py-2 px-3"><a href="/flights?user=${r.user_id}${flightsSuffix}">${r.display_name}</a></td>
         <td class="py-2 px-3">${r.category || "—"}</td>
         <td class="text-right py-2 px-3">${r.total_score.toFixed(1)}</td>
         <td class="text-right py-2 px-3">${r.total_flights}</td>
@@ -73,7 +81,7 @@ import Base from "../layouts/Base.astro";
     const updated = document.getElementById("leaderboard-updated")!;
 
     try {
-      const res = await fetch(`${R2_PUBLIC_URL}/scores/leaderboard.json`, { cache: 'no-store' });
+      const res = await fetch(`${R2_PUBLIC_URL}/${prefix}scores/leaderboard.json`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 

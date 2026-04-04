@@ -1,3 +1,5 @@
+[View Prologue Leaderboard](/leaderboard?season=prologue)
+
 #### Winners of the NorCal H&F Contest Prologue:
 
 1. Michael Vergalla ([152.6](https://norcalhf.com/flights?user=Mikevsoar))
