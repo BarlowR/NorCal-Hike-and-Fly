@@ -6,6 +6,7 @@
     "build": "tsc",
     "process": "node dist/process.js",
     "archive-prologue": "node --env-file=.env dist/archive_prologue.js",
+    "backup": "node --env-file=.env dist/backup_r2.js",
     "rescore": "node --env-file=.env dist/rescore_all.js",
     "rescore:local": "node --env-file=.env --env-file=../.env.local dist/rescore_all.js",
     "sync-local": "node --env-file=.env --env-file=../.env.local dist/sync_from_r2.js",

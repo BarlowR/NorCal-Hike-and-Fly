@@ -2,8 +2,9 @@ import { listObjects, getObject, putObject, moveObject } from "./r2.js";
 import { scoreIgc, computeFriendsBonus, FRIENDS_MULTIPLIER, type FlightRef } from "./score.js";
 import { type FlightEntry, type UserData, type LeaderboardEntry, computeStats } from "./user_data.js";
 
-const SEASON = process.env.SEASON ?? "2026";
-const S = `${SEASON}/`; // e.g. "2026/"
+const seasonArg = process.argv.find(a => a.startsWith("--season="));
+const SEASON = seasonArg !== undefined ? seasonArg.slice("--season=".length) : (process.env.SEASON ?? "2026");
+const S = SEASON ? `${SEASON}/` : ""; // e.g. "2026/"
 
 interface Leaderboard {
   updated_at: string;

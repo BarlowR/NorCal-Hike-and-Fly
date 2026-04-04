@@ -82,10 +82,11 @@ export default {
         fileData = await request.arrayBuffer();
       }
 
-      // Contest window: March 1–31 only
+      // Contest window: April 1 – October 31, 2026
       const now = new Date();
-      if (now.getMonth() !== 2) {
-        return jsonResponse({ error: "Uploads are only accepted during the contest window (March 1–31)" }, 403);
+      const nowMonth = now.getMonth(); // 0-indexed: 3=April, 9=October
+      if (now.getFullYear() !== 2026 || nowMonth < 3 || nowMonth > 9) {
+        return jsonResponse({ error: "Uploads are only accepted during the contest window (April–October 2026)" }, 403);
       }
 
       // Basic validation
@@ -106,8 +107,9 @@ export default {
       if (!flightDate) {
         return jsonResponse({ error: "Could not determine flight date from tracklog" }, 400);
       }
-      if (flightDate.getMonth() !== 2) {
-        return jsonResponse({ error: "Tracklog date must be within the contest window (March 1–31)" }, 403);
+      const flightMonth = flightDate.getMonth();
+      if (flightDate.getFullYear() !== 2026 || flightMonth < 3 || flightMonth > 9) {
+        return jsonResponse({ error: "Tracklog date must be within the contest window (April–October 2026)" }, 403);
       }
 
       // Hash file content for dedup (per-user only)
@@ -117,7 +119,7 @@ export default {
         .join("");
 
       // Check for duplicate across incoming/ and processed/ for this user
-      for (const prefix of [`incoming/${userId}/`, `processed/${userId}/`]) {
+      for (const prefix of [`incoming/${userId}/`, `2026/processed/${userId}/`]) {
         const existing = await env.TRACKLOGS.list({ prefix });
         for (const obj of existing.objects) {
           const head = await env.TRACKLOGS.head(obj.key);

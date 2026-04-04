@@ -135,8 +135,8 @@
     const tooOld = daysSince > 7;
     const tooShort = (result.groundDist ?? 0) < 3;
 
-    // Check flight is within the contest window (March)
-    const outsideContest = (flightDate.getMonth() > 2) && (flightDate.getMonth() < 10);
+    // Check flight is within the contest window (April–October 2026)
+    const outsideContest = flightDate.getFullYear() !== 2026 || flightDate.getMonth() < 3 || flightDate.getMonth() > 9;
 
     // Display results
     resultsList.innerHTML = '';

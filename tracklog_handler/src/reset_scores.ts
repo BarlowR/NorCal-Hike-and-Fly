@@ -18,8 +18,9 @@ import { listObjects, deleteObject, putObject } from "./r2.js";
 const EMPTY_LEADERBOARD = JSON.stringify({ updated_at: new Date().toISOString(), rankings: [] }, null, 2);
 
 const DRY_RUN = process.argv.includes("--dry-run");
-const SEASON = process.env.SEASON ?? "2026";
-const S = `${SEASON}/`;
+const seasonArg = process.argv.find(a => a.startsWith("--season="));
+const SEASON = seasonArg !== undefined ? seasonArg.slice("--season=".length) : (process.env.SEASON ?? "2026");
+const S = SEASON ? `${SEASON}/` : "";
 
 async function main() {
   if (DRY_RUN) console.log("DRY RUN — nothing will be deleted.\n");

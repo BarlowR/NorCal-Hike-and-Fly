@@ -14,8 +14,9 @@ import { scoreIgc, computeFriendsBonus, FRIENDS_MULTIPLIER, type FlightRef } fro
 import { type FlightEntry, type UserData, type LeaderboardEntry, computeStats } from "./user_data.js";
 
 const DRY_RUN = process.argv.includes("--dry-run");
-const SEASON = process.env.SEASON ?? "2026";
-const S = `${SEASON}/`; // e.g. "2026/"
+const seasonArg = process.argv.find(a => a.startsWith("--season="));
+const SEASON = seasonArg !== undefined ? seasonArg.slice("--season=".length) : (process.env.SEASON ?? "2026");
+const S = SEASON ? `${SEASON}/` : ""; // e.g. "2026/"
 
 async function main() {
   if (DRY_RUN) console.log("DRY RUN — results will not be written to R2.\n");
