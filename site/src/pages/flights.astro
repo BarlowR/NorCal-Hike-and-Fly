@@ -225,8 +225,8 @@ import Flightmap from "../components/Flightmap.astro";
   async function loadTrack(trackFile: string, sourceKey: string) {
     try {
       const [trackRes, sourceRes] = await Promise.all([
-        fetch(`${R2_PUBLIC_URL}/${prefix}${trackFile}`, { cache: 'no-store' }),
-        sourceKey ? fetch(`${R2_PUBLIC_URL}/${prefix}${sourceKey}`, { cache: 'no-store' }) : Promise.resolve(null),
+        fetch(`${R2_PUBLIC_URL}/${trackFile}`, { cache: 'no-store' }),
+        sourceKey ? fetch(`${R2_PUBLIC_URL}/${sourceKey}`, { cache: 'no-store' }) : Promise.resolve(null),
       ]);
 
       if (!trackRes.ok) throw new Error(`HTTP ${trackRes.status}`);

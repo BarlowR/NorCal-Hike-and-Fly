@@ -1,10 +1,10 @@
-[View Prologue Leaderboard](/leaderboard?season=prologue)
-
 #### Winners of the NorCal H&F Contest Prologue:
 
-1. Michael Vergalla ([152.6](https://norcalhf.com/flights?user=Mikevsoar))
-2. Steffen ([143.3](http://norcalhf.com/flights?user=sclimber))
-3. Rob Barlow ([134.5](http://norcalhf.com/flights?user=merlin-rob))
+1. Michael Vergalla ([152.6](https://norcalhf.com/flights?user=Mikevsoar&season=prologue))
+2. Steffen ([143.3](http://norcalhf.com/flights?user=sclimber&season=prologue))
+3. Rob Barlow ([134.5](http://norcalhf.com/flights?user=merlin-rob&season=prologue))
+
+[View Prologue Leaderboard](/leaderboard?season=prologue)
 
 #### NorCal H&F Contest Prologue
 
