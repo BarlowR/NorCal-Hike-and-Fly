@@ -11,28 +11,38 @@ const tabs = [
   { id: 'rules', label: 'Rules' },
   { id: 'tracklog-recording', label: 'Tracklog Help' },
   { id: 'scoring', label: 'Tracklog Upload' },
-  { id: 'about', label: 'About' },
   { id: 'prologue', label: 'Prologue' },
+  { id: 'about', label: 'About' },
 ];
 ---
 
 <div class="w-full max-w-4xl mx-auto p-4">
   <!-- Toggle Bar -->
-  <div class="flex flex-wrap justify-center border-b border-gray-200 mb-6">
-    {tabs.map(tab => (
+  <div class="flex flex-col border-b border-gray-200 mb-6">
+    <div class="flex flex-wrap justify-center">
+      {tabs.filter(t => t.id !== 'scoring').map(tab => (
+        <button
+          class="tab-button px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-600 hover:text-gray-900 border-b-2 border-transparent transition-colors"
+          data-tab={tab.id}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+    <div class="flex flex-wrap justify-center border-t border-gray-100">
       <button
         class="tab-button px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-600 hover:text-gray-900 border-b-2 border-transparent transition-colors"
-        data-tab={tab.id}
+        data-tab="scoring"
       >
-        {tab.label}
+        Tracklog Upload
       </button>
-    ))}
-    <a
-      href="/leaderboard"
-      class="px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-600 hover:text-gray-900 border-b-2 border-transparent transition-colors no-underline"
-    >
-      Leaderboard
-    </a>
+      <a
+        href="/leaderboard"
+        class="px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-600 hover:text-gray-900 border-b-2 border-transparent transition-colors no-underline"
+      >
+        Leaderboard
+      </a>
+    </div>
   </div>
 
   <!-- Content Panels -->
