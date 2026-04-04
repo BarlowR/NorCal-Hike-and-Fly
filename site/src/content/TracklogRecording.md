@@ -38,7 +38,6 @@ GPX tracks are allowed, so you can record your day's flight with any device whic
 
 #### Tips
 
-- Record for the **entire day** — start recording before you leave the trailhead and stop after you return. The scoring system will truncate tracks to the 6am–6pm window automatically.
-- **Do not stop and restart** the recording mid-day. All scoring is done from a single continuous tracklog.
-- Verify your tracklog includes both hiking and flying segments before submitting.
+- Remember to record for the entire day. Start recording before you leave your car and stop after you return. The scoring system will truncate tracks to the 6am–6pm window automatically.
+- Do not stop and restart the recording mid-day. All scoring is done from a single continuous tracklog. 
 - Submit within **7 days** via the Tracklog Upload tab.
