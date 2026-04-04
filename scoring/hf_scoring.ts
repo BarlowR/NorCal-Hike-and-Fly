@@ -3,8 +3,8 @@ import { solver, scoringRules as scoring } from 'igc-xc-score';
 import { analyze } from './analyze_flight.js';
 import { parseGpx } from './gpx_parser.js';
 import { Point } from 'igc-xc-score/src/foundation.js';
-export const COMPETITION_START_HOUR = 8;   // 8:00 AM local
-export const COMPETITION_END_HOUR   = 17;  // 5:00 PM local
+export const COMPETITION_START_HOUR = 6;   // 6:00 AM local
+export const COMPETITION_END_HOUR   = 18;  // 6:00 PM local
 
 /**
  * Parse the HFTZNTIMEZONE header from an IGC file and return an Etc/GMT
@@ -52,6 +52,45 @@ async function getTimezone(lat: number, lon: number): Promise<string> {
     }
 }
 
+/**
+ * Compute hiking elevation gain (metres) from on-ground fixes.
+ * Uses a 30-second trailing moving average to smooth GPS altitude noise
+ * before summing positive deltas.
+ */
+function computeHikingElevationGain(
+    fixes: Array<{ timestamp: number; pressureAltitude: number | null; gpsAltitude?: number | null; onGround?: boolean }>
+): number {
+    const gFixes = fixes.filter(f => f.onGround);
+    if (gFixes.length < 2) return 0;
+
+    // Prefer pressure altitude; fall back to GPS altitude
+    const rawAlt = gFixes.map(f =>
+        (f.pressureAltitude != null ? f.pressureAltitude : (f.gpsAltitude ?? null)) ?? 0
+    );
+
+    // 30-second trailing moving average to filter GPS noise
+    const WIN_MS = 30_000;
+    const smoothed: number[] = new Array(gFixes.length);
+    let lo = 0;
+    let sum = rawAlt[0];
+    smoothed[0] = rawAlt[0];
+    for (let i = 1; i < gFixes.length; i++) {
+        sum += rawAlt[i];
+        while (gFixes[lo].timestamp < gFixes[i].timestamp - WIN_MS) {
+            sum -= rawAlt[lo];
+            lo++;
+        }
+        smoothed[i] = sum / (i - lo + 1);
+    }
+
+    let gain = 0;
+    for (let i = 1; i < smoothed.length; i++) {
+        const delta = smoothed[i] - smoothed[i - 1];
+        if (delta > 0) gain += delta;
+    }
+    return Math.round(gain);
+}
+
 export async function scoreTrack(file_contents: string) {
     try {
         const isGpx = file_contents.trimStart().startsWith('<');
@@ -59,7 +98,7 @@ export async function scoreTrack(file_contents: string) {
             ? parseGpx(file_contents)
             : IGCParser.parse(file_contents, { lenient: true })) as any;
 
-        // Determine timezone and filter fixes to 8am–5pm local time.
+        // Determine timezone and filter fixes to contest window local time.
         const tz = !isGpx ? igcTimeZone(file_contents) : null;
         const timeZone = tz ?? await (async () => {
             const validFix = flight.fixes.find((f: any) => f.latitude !== 0 || f.longitude !== 0)
@@ -139,6 +178,8 @@ export async function scoreTrack(file_contents: string) {
             }
         }
 
+        const elevationGain = computeHikingElevationGain(fixes);
+
         let score = 0;
         // Full triangle
         score += triangleDist;
@@ -159,7 +200,7 @@ export async function scoreTrack(file_contents: string) {
         console.log(`  Scoring: tri=${triangleDist.toFixed(2)} penalty=${penalty.toFixed(2)} ground=${groundDist.toFixed(2)} mult=${multiplier} closed=${closed}`);
         console.log(`  Final score: ${score.toFixed(2)} (optimal=${best.optimal}, cycles=${cycles})`);
 
-        return { best: best, flight: flight, groundDist: groundDist, closed: closed, score: score, filteredByTime: filteredByTime };
+        return { best: best, flight: flight, groundDist: groundDist, elevationGain: elevationGain, closed: closed, score: score, filteredByTime: filteredByTime };
     } catch (e) {
         console.error(e);
     }

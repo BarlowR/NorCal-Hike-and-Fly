@@ -1,62 +1,19 @@
 import { listObjects, getObject, putObject, moveObject } from "./r2.js";
-import { scoreIgc, type ScoreResult } from "./score.js";
+import { scoreIgc, computeFriendsBonus, FRIENDS_MULTIPLIER, type FlightRef } from "./score.js";
+import { type FlightEntry, type UserData, type LeaderboardEntry, computeStats } from "./user_data.js";
 
-interface FlightEntry {
-  id: string;
-  date: string;
-  score: number;
-  breakdown: ScoreResult["breakdown"];
-  distance_km: number;
-  duration_s: number;
-  track_file: string;
-  source_key: string;
-}
-
-interface UserData {
-  user_id: string;
-  display_name: string;
-  category: string;
-  stats: {
-    total_score: number;
-    total_km: number;
-    total_flights: number;
-    avg_score: number;
-    best_score: number;
-  };
-  flights: FlightEntry[];
-}
-
-interface LeaderboardEntry {
-  user_id: string;
-  display_name: string;
-  category: string;
-  total_score: number;
-  total_km: number;
-  total_flights: number;
-  best_score: number;
-  last_flight: string;
-}
+const seasonArg = process.argv.find(a => a.startsWith("--season="));
+const SEASON = seasonArg !== undefined ? seasonArg.slice("--season=".length) : (process.env.SEASON ?? "2026");
+const S = SEASON ? `${SEASON}/` : ""; // e.g. "2026/"
 
 interface Leaderboard {
   updated_at: string;
   rankings: LeaderboardEntry[];
 }
 
-function computeStats(flights: FlightEntry[]): UserData["stats"] {
-  const scores = flights.map((f) => f.score);
-  const top2 = [...scores].sort((a, b) => b - a).slice(0, 2);
-  return {
-    total_score: top2.reduce((a, b) => a + b, 0),
-    total_km: flights.reduce((a, f) => a + f.breakdown.hiking_km, 0),
-    total_flights: flights.length,
-    avg_score: flights.length > 0 ? scores.reduce((a, b) => a + b, 0) / flights.length : 0,
-    best_score: flights.length > 0 ? Math.max(...scores) : 0,
-  };
-}
-
 async function getExistingUserData(userId: string): Promise<UserData> {
   try {
-    const content = await getObject(`scores/users/${userId}.json`);
+    const content = await getObject(`${S}scores/users/${userId}.json`);
     return JSON.parse(content);
   } catch {
     return {
@@ -66,6 +23,7 @@ async function getExistingUserData(userId: string): Promise<UserData> {
       stats: {
         total_score: 0,
         total_km: 0,
+        total_elevation_gain_m: 0,
         total_flights: 0,
         avg_score: 0,
         best_score: 0,
@@ -120,7 +78,7 @@ async function main() {
       const result = await scoreIgc(content);
 
       // Write track file with full data for Flightmap rendering
-      const trackKey = `scores/tracks/${userId}/${flightId}.json`;
+      const trackKey = `${S}scores/tracks/${userId}/${flightId}.json`;
       await putObject(
         trackKey,
         JSON.stringify({
@@ -130,7 +88,7 @@ async function main() {
       );
 
       // Move to processed first so we can store the final key
-      const processedKey = key.replace("incoming/", "processed/");
+      const processedKey = key.replace("incoming/", `${S}processed/`);
       await moveObject(key, processedKey);
 
       // Build flight entry
@@ -141,8 +99,11 @@ async function main() {
         breakdown: result.breakdown,
         distance_km: result.distance_km,
         duration_s: result.duration_s,
+        elevation_gain_m: result.breakdown.elevation_gain_m,
         track_file: trackKey,
         source_key: processedKey,
+        launch_lat: result.launch_lat,
+        launch_lon: result.launch_lon,
       };
 
       if (!userNewFlights.has(userId)) {
@@ -183,7 +144,7 @@ async function main() {
       userData.stats = computeStats(userData.flights);
 
       await putObject(
-        `scores/users/${userId}.json`,
+        `${S}scores/users/${userId}.json`,
         JSON.stringify(userData, null, 2)
       );
     } catch (err) {
@@ -191,31 +152,70 @@ async function main() {
     }
   }
 
-  // Build leaderboard
-  console.log("Building leaderboard...");
+  // Apply friends bonus and build leaderboard
+  console.log("Computing friends bonus and building leaderboard...");
   try {
-    const userKeys = await listObjects("scores/users/");
+    const userKeys = await listObjects(`${S}scores/users/`);
     const jsonKeys = userKeys.filter((k) => k.endsWith(".json"));
 
-    const rankings: LeaderboardEntry[] = [];
-
+    // Load all user data
+    const allUsers = new Map<string, { key: string; data: UserData }>();
     for (const userKey of jsonKeys) {
       try {
         const userData: UserData = JSON.parse(await getObject(userKey));
-        rankings.push({
-          user_id: userData.user_id,
-          display_name: userData.display_name,
-          category: userData.category || "",
-          total_score: userData.stats.total_score,
-          total_km: userData.stats.total_km,
-          total_flights: userData.stats.total_flights,
-          best_score: userData.stats.best_score,
-          last_flight:
-            userData.flights.length > 0 ? userData.flights[0].date : "",
-        });
+        allUsers.set(userData.user_id, { key: userKey, data: userData });
       } catch (err) {
         console.error(`Failed to read user file ${userKey}:`, err);
       }
+    }
+
+    // Compute friends bonus across all flights
+    const allFlightRefs: FlightRef[] = [];
+    for (const [userId, { data }] of allUsers) {
+      for (const flight of data.flights) {
+        allFlightRefs.push({
+          id: `${userId}/${flight.id}`,
+          date: flight.date,
+          launch_lat: flight.launch_lat ?? 0,
+          launch_lon: flight.launch_lon ?? 0,
+        });
+      }
+    }
+    const qualifying = computeFriendsBonus(allFlightRefs);
+    console.log(`  Friends bonus: ${qualifying.size} qualifying flight(s)`);
+
+    // Apply bonus and re-save any user files that changed
+    for (const [userId, { key, data }] of allUsers) {
+      let modified = false;
+      for (const flight of data.flights) {
+        const shouldHave = qualifying.has(`${userId}/${flight.id}`);
+        if (shouldHave !== flight.breakdown.friends_bonus) {
+          flight.score = flight.breakdown.base_score * (shouldHave ? FRIENDS_MULTIPLIER : 1);
+          flight.breakdown.friends_bonus = shouldHave;
+          modified = true;
+        }
+      }
+      if (modified) {
+        data.stats = computeStats(data.flights);
+        await putObject(key, JSON.stringify(data, null, 2));
+        console.log(`  Updated friends bonus for ${userId}`);
+      }
+    }
+
+    // Build leaderboard from updated user data
+    const rankings: LeaderboardEntry[] = [];
+    for (const [, { data }] of allUsers) {
+      rankings.push({
+        user_id: data.user_id,
+        display_name: data.display_name,
+        category: data.category || "",
+        total_score: data.stats.total_score,
+        total_km: data.stats.total_km,
+        total_elevation_gain_m: data.stats.total_elevation_gain_m ?? 0,
+        total_flights: data.stats.total_flights,
+        best_score: data.stats.best_score,
+        last_flight: data.flights.length > 0 ? data.flights[0].date : "",
+      });
     }
 
     rankings.sort((a, b) => b.total_score - a.total_score);
@@ -226,12 +226,10 @@ async function main() {
     };
 
     await putObject(
-      "scores/leaderboard.json",
+      `${S}scores/leaderboard.json`,
       JSON.stringify(leaderboard, null, 2)
     );
-    console.log(
-      `Leaderboard updated with ${rankings.length} user(s).`
-    );
+    console.log(`Leaderboard updated with ${rankings.length} user(s).`);
   } catch (err) {
     console.error("Failed to build leaderboard:", err);
     throw err;
