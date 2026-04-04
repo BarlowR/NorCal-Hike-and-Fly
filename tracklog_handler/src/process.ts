@@ -1,59 +1,10 @@
 import { listObjects, getObject, putObject, moveObject } from "./r2.js";
-import { scoreIgc, computeFriendsBonus, FRIENDS_MULTIPLIER, type ScoreResult, type FlightRef } from "./score.js";
-
-interface FlightEntry {
-  id: string;
-  date: string;
-  score: number;
-  breakdown: ScoreResult["breakdown"];
-  distance_km: number;
-  duration_s: number;
-  track_file: string;
-  source_key: string;
-  launch_lat: number;
-  launch_lon: number;
-}
-
-interface UserData {
-  user_id: string;
-  display_name: string;
-  category: string;
-  stats: {
-    total_score: number;
-    total_km: number;
-    total_flights: number;
-    avg_score: number;
-    best_score: number;
-  };
-  flights: FlightEntry[];
-}
-
-interface LeaderboardEntry {
-  user_id: string;
-  display_name: string;
-  category: string;
-  total_score: number;
-  total_km: number;
-  total_flights: number;
-  best_score: number;
-  last_flight: string;
-}
+import { scoreIgc, computeFriendsBonus, FRIENDS_MULTIPLIER, type FlightRef } from "./score.js";
+import { type FlightEntry, type UserData, type LeaderboardEntry, computeStats } from "./user_data.js";
 
 interface Leaderboard {
   updated_at: string;
   rankings: LeaderboardEntry[];
-}
-
-function computeStats(flights: FlightEntry[]): UserData["stats"] {
-  const scores = flights.map((f) => f.score);
-  const top2 = [...scores].sort((a, b) => b - a).slice(0, 2);
-  return {
-    total_score: top2.reduce((a, b) => a + b, 0),
-    total_km: flights.reduce((a, f) => a + f.breakdown.hiking_km, 0),
-    total_flights: flights.length,
-    avg_score: flights.length > 0 ? scores.reduce((a, b) => a + b, 0) / flights.length : 0,
-    best_score: flights.length > 0 ? Math.max(...scores) : 0,
-  };
 }
 
 async function getExistingUserData(userId: string): Promise<UserData> {
@@ -68,6 +19,7 @@ async function getExistingUserData(userId: string): Promise<UserData> {
       stats: {
         total_score: 0,
         total_km: 0,
+        total_elevation_gain_m: 0,
         total_flights: 0,
         avg_score: 0,
         best_score: 0,
@@ -143,6 +95,7 @@ async function main() {
         breakdown: result.breakdown,
         distance_km: result.distance_km,
         duration_s: result.duration_s,
+        elevation_gain_m: result.breakdown.elevation_gain_m,
         track_file: trackKey,
         source_key: processedKey,
         launch_lat: result.launch_lat,
@@ -254,6 +207,7 @@ async function main() {
         category: data.category || "",
         total_score: data.stats.total_score,
         total_km: data.stats.total_km,
+        total_elevation_gain_m: data.stats.total_elevation_gain_m ?? 0,
         total_flights: data.stats.total_flights,
         best_score: data.stats.best_score,
         last_flight: data.flights.length > 0 ? data.flights[0].date : "",

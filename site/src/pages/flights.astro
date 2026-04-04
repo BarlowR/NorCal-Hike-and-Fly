@@ -5,7 +5,7 @@ import Flightmap from "../components/Flightmap.astro";
 
 <Base title="Flights - NorCal H&F">
   <div class="w-full max-w-4xl mx-auto p-4">
-    <h1 class="text-center"><a href="/leaderboard" class="no-underline">Prologue Leaderboard</a></h1>
+    <h1 class="text-center"><a href="/leaderboard" class="no-underline">2026 Leaderboard</a></h1>
     <h2 id="user-heading">Flights</h2>
 
     <!-- Stats summary -->
@@ -27,6 +27,10 @@ import Flightmap from "../components/Flightmap.astro";
         <div id="stat-total-km" class="text-xl font-bold"></div>
       </div>
       <div class="bg-gray-50 rounded p-3 text-center">
+        <div class="text-sm text-gray-500">Total Elev. Gain</div>
+        <div id="stat-total-elevation" class="text-xl font-bold"></div>
+      </div>
+      <div class="bg-gray-50 rounded p-3 text-center">
         <div class="text-sm text-gray-500">Avg Score</div>
         <div id="stat-avg-score" class="text-xl font-bold"></div>
       </div>
@@ -46,6 +50,7 @@ import Flightmap from "../components/Flightmap.astro";
             <th class="text-right py-2 px-4">Score</th>
             <th class="text-right py-2 px-2">Triangle (km)</th>
             <th class="text-right py-2 px-2">Hiking (km)</th>
+            <th class="text-right py-2 px-2">Elev. Gain (m)</th>
             <th class="text-right py-2 px-2">Penalty (km)</th>
             <th class="text-right py-2 px-3">Duration</th>
             <th class="text-right py-2 px-3">Type</th>
@@ -114,10 +119,12 @@ import Flightmap from "../components/Flightmap.astro";
         String(s.total_flights);
       document.getElementById("stat-total-km")!.textContent =
         s.total_km.toFixed(1);
+      document.getElementById("stat-total-elevation")!.textContent =
+        `${Math.round(s.total_elevation_gain_m ?? 0).toLocaleString()} m`;
       document.getElementById("stat-avg-score")!.textContent =
         s.avg_score.toFixed(1);
       statsBar.classList.remove("hidden");
-      statsBar.classList.add("grid", "grid-cols-2", "md:grid-cols-5");
+      statsBar.classList.add("grid", "grid-cols-2", "md:grid-cols-6");
 
       // Flights table
       body.innerHTML = data.flights
@@ -128,6 +135,7 @@ import Flightmap from "../components/Flightmap.astro";
           <td class="text-right py-2 px-3">${f.score.toFixed(1)}${f.breakdown?.friends_bonus ? ' 👥' : ''}</td>
           <td class="text-right py-2 px-3">${f.breakdown.triangle_km.toFixed(1)}</td>
           <td class="text-right py-2 px-3">${f.breakdown.hiking_km.toFixed(1)}</td>
+          <td class="text-right py-2 px-3">${Math.round(f.breakdown.elevation_gain_m ?? 0).toLocaleString()}</td>
           <td class="text-right py-2 px-3">${f.breakdown.penalty_km.toFixed(1)}</td>
           <td class="text-right py-2 px-3">${formatDuration(f.duration_s)}</td>
           <td class="text-right py-2 px-3">${f.breakdown.closed ? "Closed" : "Open"} ${(f.breakdown.scoring_code || "tri").toUpperCase()}</td>
