@@ -1,36 +1,24 @@
 ### Tracklog Recording
 
-A tracklog is a GPS recording of your flight day — it captures your position over time and is the basis for all scoring. You'll need an app that records in IGC or GPX format and can export the file for submission.
+**Please do not use the SportsTrackLive app to record tracklogs!**
 
-#### Android — XCTrack (Recommended)
+#### Android — [XCTrack](https://xctrack.org) (Recommended)
 
-[XCTrack](https://xctrack.org) is recommended.
-
-**Setup for Hike and Fly Tracks:**
+**XCTrack setup for Hike and Fly Tracks:**
 * Go to Preferences menu
 * Find Automatic Actions
 * Set the following:
     * Landing Detection: No Detection
     * Takeoff Speed: 1 km/h
 
-Start your tracklog at the beginning of the day by opening the app. 
-
-Finish your tracklog by clicking the Quit button from the dragdown menu on any flight scree.
-
-#### iOS — FlySkyHy
-**Setup for Hike and Fly Tracks:**
-* Navigate to Settings -> Other
-* Disable:
-    * Auto start Flight
-    * Auto end flight
-
-Start your tracklog with the Start button. 
-
-Finish your tracklog by clicking the Stop button.
+#### iOS
+Options: 
+* SeeYou Navigator (Great hike and fly mode)
+* Gaia (may require subscription)
 
 #### Dedicated Vario / Flight Computer
 
-Most modern varios and flight computers (Syride, Naviter Oudie, Flytec, etc.) record IGC tracklogs natively. Some (Naviter) support Hike and Fly tracklogs. Export the IGC file via USB or the manufacturer's companion app after your flight day.
+Most varios and flight computers record IGC tracklogs natively. Some (Naviter) support Hike and Fly tracklogs. Export the IGC file via USB or the manufacturer's companion app after your flight day.
 
 #### Dedicated GPS Tracker, Smartwatch, Etc.
 

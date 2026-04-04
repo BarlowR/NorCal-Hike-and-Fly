@@ -36,4 +36,7 @@
   li {
     @apply pb-1;
   }
+  strong {
+    @apply text-sm;
+  }
 }
