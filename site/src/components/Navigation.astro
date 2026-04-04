@@ -1,16 +1,18 @@
 ---
-import { Content as Overview } from '../content/Overview.md'; 
-import { Content as Rules } from '../content/Rules.md'; 
-import { Content as Prologue } from '../content/Prologue.md'; 
-import About from '../content/About.astro'; 
-import Scoring from '../content/Scoring.astro'; 
+import { Content as Overview } from '../content/Overview.md';
+import { Content as Rules } from '../content/Rules.md';
+import { Content as Prologue } from '../content/Prologue.md';
+import { Content as TracklogRecording } from '../content/TracklogRecording.md';
+import About from '../content/About.astro';
+import Scoring from '../content/Scoring.astro';
 // ComponentToggle.astro
 const tabs = [
   { id: 'overview', label: 'Overview' },
   { id: 'prologue', label: 'Prologue' },
   { id: 'rules', label: 'Rules' },
-  { id: 'about', label: 'About' }, 
+  { id: 'tracklog-recording', label: 'Tracklog Help' },
   { id: 'scoring', label: 'Tracklog Upload' },
+  { id: 'about', label: 'About' },
 ];
 ---
 
@@ -46,6 +48,10 @@ const tabs = [
     <Rules />
   </div>
   
+  <div class="tab-content hidden" data-content="tracklog-recording">
+    <TracklogRecording />
+  </div>
+
   <div class="tab-content hidden" data-content="about">
     <About />
   </div>
