@@ -24,6 +24,7 @@ import Base from "../layouts/Base.astro";
             <th class="text-right py-2 px-3">Best Score</th>
             <th class="text-right py-2 px-3">Flights</th>
             <th class="text-right py-2 px-3"><button class="sort-btn cursor-pointer hover:underline font-bold" data-key="total_km" data-label="Total Hiked">Total Hiked</button></th>
+            <th class="text-right py-2 px-3"><button class="sort-btn cursor-pointer hover:underline font-bold" data-key="total_elevation_gain_m" data-label="Total Elev. Gain">Total Elev. Gain</button></th>
             <th class="text-right py-2 px-3">Last Flight</th>
           </tr>
         </thead>
@@ -54,6 +55,7 @@ import Base from "../layouts/Base.astro";
         <td class="text-right py-2 px-3">${r.best_score.toFixed(1)}</td>
         <td class="text-right py-2 px-3">${r.total_flights}</td>
         <td class="text-right py-2 px-3">${r.total_km.toFixed(1)}</td>
+        <td class="text-right py-2 px-3">${Math.round(r.total_elevation_gain_m ?? 0).toLocaleString()} m</td>
         <td class="text-right py-2 px-3">${r.last_flight || "—"}</td>
       </tr>`
       )
