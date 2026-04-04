@@ -5,7 +5,7 @@ import Flightmap from "../components/Flightmap.astro";
 
 <Base title="Flights - NorCal H&F">
   <div class="w-full max-w-4xl mx-auto p-4">
-    <h1 class="text-center"><a href="/leaderboard" class="no-underline">2026 Leaderboard</a></h1>
+    <h1 class="text-center"><a id="leaderboard-link" href="/leaderboard" class="no-underline">Leaderboard</a></h1>
     <h2 id="user-heading">Flights</h2>
 
     <!-- Stats summary -->
@@ -27,7 +27,7 @@ import Flightmap from "../components/Flightmap.astro";
         <div id="stat-total-km" class="text-xl font-bold"></div>
       </div>
       <div class="bg-gray-50 rounded p-3 text-center">
-        <div class="text-sm text-gray-500">Total Elev. Gain</div>
+        <div class="text-sm text-gray-500">Total Vert</div>
         <div id="stat-total-elevation" class="text-xl font-bold"></div>
       </div>
       <div class="bg-gray-50 rounded p-3 text-center">
@@ -46,11 +46,12 @@ import Flightmap from "../components/Flightmap.astro";
       <table class="w-full border-collapse">
         <thead>
           <tr class="border-b-2 border-gray-300">
-            <th class="text-left py-2 px-3">Date</th>
-            <th class="text-right py-2 px-4">Score</th>
+            <th class="text-left py-2 px-3"><button class="sort-btn cursor-pointer hover:underline font-bold" data-key="date" data-label="Date">Date</button></th>
+            <th class="text-right py-2 px-4"><button class="sort-btn cursor-pointer hover:underline font-bold" data-key="score" data-label="Score">Score</button></th>
+            <th class="text-center py-2 px-1"></th>
             <th class="text-right py-2 px-2">Triangle (km)</th>
-            <th class="text-right py-2 px-2">Hiking (km)</th>
-            <th class="text-right py-2 px-2">Elev. Gain (m)</th>
+            <th class="text-right py-2 px-2"><button class="sort-btn cursor-pointer hover:underline font-bold" data-key="hiking_km" data-label="Hiking (km)">Hiking (km)</button></th>
+            <th class="text-right py-2 px-2"><button class="sort-btn cursor-pointer hover:underline font-bold" data-key="elevation_gain_m" data-label="Vert (m)">Vert (m)</button></th>
             <th class="text-right py-2 px-2">Penalty (km)</th>
             <th class="text-right py-2 px-3">Duration</th>
             <th class="text-right py-2 px-3">Type</th>
@@ -82,12 +83,91 @@ import Flightmap from "../components/Flightmap.astro";
     return params.get("user");
   }
 
+  const params = new URLSearchParams(window.location.search);
+  const season = params.get("season") ?? "2026";
+  const prefix = `${season}/`;
+
+  const leaderboardLink = document.getElementById("leaderboard-link") as HTMLAnchorElement;
+  leaderboardLink.href = `/leaderboard?season=${season}`;
+  leaderboardLink.textContent = season === "prologue" ? "Prologue Leaderboard" : `${season} Leaderboard`;
+
+  let flights: any[] = [];
+  let currentSort = "date";
+
+  function renderFlights(sortKey: string) {
+    currentSort = sortKey;
+    const body = document.getElementById("flights-body")!;
+
+    const sorted = [...flights].sort((a, b) => {
+      if (sortKey === "date") return b.date.localeCompare(a.date);
+      if (sortKey === "score") return b.score - a.score;
+      if (sortKey === "hiking_km") return b.breakdown.hiking_km - a.breakdown.hiking_km;
+      if (sortKey === "elevation_gain_m") return (b.breakdown.elevation_gain_m ?? 0) - (a.breakdown.elevation_gain_m ?? 0);
+      return 0;
+    });
+
+    body.innerHTML = sorted
+      .map(
+        (f: any) => `
+      <tr class="border-b border-gray-200 hover:bg-gray-50">
+        <td class="py-2 px-3">${f.date}</td>
+        <td class="text-right py-2 px-3">${f.score.toFixed(1)}</td>
+        <td class="text-center py-2 px-1">${f.breakdown?.friends_bonus ? '<sup class="text-blue-500 font-bold cursor-default" title="Fly with Friends bonus">★</sup>' : ''}</td>
+        <td class="text-right py-2 px-3">${f.breakdown.triangle_km.toFixed(1)}</td>
+        <td class="text-right py-2 px-3">${f.breakdown.hiking_km.toFixed(1)}</td>
+        <td class="text-right py-2 px-3">${Math.round(f.breakdown.elevation_gain_m ?? 0).toLocaleString()}</td>
+        <td class="text-right py-2 px-3">${f.breakdown.penalty_km.toFixed(1)}</td>
+        <td class="text-right py-2 px-3">${formatDuration(f.duration_s)}</td>
+        <td class="text-right py-2 px-3">${f.breakdown.closed ? "Closed" : "Open"} ${(f.breakdown.scoring_code || "tri").toUpperCase()}</td>
+        <td class="text-center py-2 px-3">
+          <button class="view-flight-btn text-blue-700 underline cursor-pointer" data-track="${f.track_file}" data-src="${f.source_key || ''}">
+            View
+          </button>
+        </td>
+        <td class="text-center py-2 px-3">
+          ${f.source_key ? `<button class="download-track-btn text-blue-700 underline cursor-pointer" data-src="${f.source_key}">↓</button>` : ''}
+        </td>
+      </tr>`
+      )
+      .join("");
+
+    // Update sort button labels
+    document.querySelectorAll<HTMLElement>(".sort-btn").forEach((btn) => {
+      const label = btn.dataset.label!;
+      btn.textContent = btn.dataset.key === sortKey ? `${label} ▼` : label;
+    });
+
+    // Wire up view buttons
+    document.querySelectorAll(".view-flight-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const trackFile = (btn as HTMLElement).dataset.track!;
+        const sourceKey = (btn as HTMLElement).dataset.src || '';
+        loadTrack(trackFile, sourceKey);
+      });
+    });
+
+    // Wire up download buttons
+    document.querySelectorAll(".download-track-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const src = (btn as HTMLElement).dataset.src!;
+        const filename = src.split("/").pop()!;
+        const res = await fetch(`${R2_PUBLIC_URL}/${src}`);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+    });
+  }
+
   async function loadFlights() {
     const userId = getUserId();
     const loading = document.getElementById("flights-loading")!;
     const error = document.getElementById("flights-error")!;
     const table = document.getElementById("flights-table")!;
-    const body = document.getElementById("flights-body")!;
     const statsBar = document.getElementById("stats-bar")!;
 
     if (!userId) {
@@ -99,7 +179,7 @@ import Flightmap from "../components/Flightmap.astro";
 
     try {
       const res = await fetch(
-        `${R2_PUBLIC_URL}/scores/users/${userId}.json`,
+        `${R2_PUBLIC_URL}/${prefix}scores/users/${userId}.json`,
         { cache: 'no-store' }
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -126,58 +206,15 @@ import Flightmap from "../components/Flightmap.astro";
       statsBar.classList.remove("hidden");
       statsBar.classList.add("grid", "grid-cols-2", "md:grid-cols-6");
 
-      // Flights table
-      body.innerHTML = data.flights
-        .map(
-          (f: any) => `
-        <tr class="border-b border-gray-200 hover:bg-gray-50">
-          <td class="py-2 px-3">${f.date}</td>
-          <td class="text-right py-2 px-3">${f.score.toFixed(1)}${f.breakdown?.friends_bonus ? ' 👥' : ''}</td>
-          <td class="text-right py-2 px-3">${f.breakdown.triangle_km.toFixed(1)}</td>
-          <td class="text-right py-2 px-3">${f.breakdown.hiking_km.toFixed(1)}</td>
-          <td class="text-right py-2 px-3">${Math.round(f.breakdown.elevation_gain_m ?? 0).toLocaleString()}</td>
-          <td class="text-right py-2 px-3">${f.breakdown.penalty_km.toFixed(1)}</td>
-          <td class="text-right py-2 px-3">${formatDuration(f.duration_s)}</td>
-          <td class="text-right py-2 px-3">${f.breakdown.closed ? "Closed" : "Open"} ${(f.breakdown.scoring_code || "tri").toUpperCase()}</td>
-          <td class="text-center py-2 px-3">
-            <button class="view-flight-btn text-blue-700 underline cursor-pointer" data-track="${f.track_file}" data-src="${f.source_key || ''}">
-              View
-            </button>
-          </td>
-          <td class="text-center py-2 px-3">
-            ${f.source_key ? `<button class="download-track-btn text-blue-700 underline cursor-pointer" data-src="${f.source_key}">↓</button>` : ''}
-          </td>
-        </tr>`
-        )
-        .join("");
+      flights = data.flights;
+      renderFlights(currentSort);
+
+      document.querySelectorAll<HTMLElement>(".sort-btn").forEach((btn) => {
+        btn.addEventListener("click", () => renderFlights(btn.dataset.key!));
+      });
 
       loading.classList.add("hidden");
       table.classList.remove("hidden");
-
-      // Wire up view buttons
-      document.querySelectorAll(".view-flight-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const trackFile = (btn as HTMLElement).dataset.track!;
-          const sourceKey = (btn as HTMLElement).dataset.src || '';
-          loadTrack(trackFile, sourceKey);
-        });
-      });
-
-      // Wire up download buttons
-      document.querySelectorAll(".download-track-btn").forEach((btn) => {
-        btn.addEventListener("click", async () => {
-          const src = (btn as HTMLElement).dataset.src!;
-          const filename = src.split("/").pop()!;
-          const res = await fetch(`${R2_PUBLIC_URL}/${src}`);
-          const blob = await res.blob();
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = filename;
-          a.click();
-          URL.revokeObjectURL(url);
-        });
-      });
     } catch (e: any) {
       loading.classList.add("hidden");
       error.textContent = `Failed to load flights: ${e.message}`;

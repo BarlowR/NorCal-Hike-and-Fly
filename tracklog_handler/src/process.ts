@@ -2,6 +2,10 @@ import { listObjects, getObject, putObject, moveObject } from "./r2.js";
 import { scoreIgc, computeFriendsBonus, FRIENDS_MULTIPLIER, type FlightRef } from "./score.js";
 import { type FlightEntry, type UserData, type LeaderboardEntry, computeStats } from "./user_data.js";
 
+const seasonArg = process.argv.find(a => a.startsWith("--season="));
+const SEASON = seasonArg !== undefined ? seasonArg.slice("--season=".length) : (process.env.SEASON ?? "2026");
+const S = SEASON ? `${SEASON}/` : ""; // e.g. "2026/"
+
 interface Leaderboard {
   updated_at: string;
   rankings: LeaderboardEntry[];
@@ -9,7 +13,7 @@ interface Leaderboard {
 
 async function getExistingUserData(userId: string): Promise<UserData> {
   try {
-    const content = await getObject(`scores/users/${userId}.json`);
+    const content = await getObject(`${S}scores/users/${userId}.json`);
     return JSON.parse(content);
   } catch {
     return {
@@ -74,7 +78,7 @@ async function main() {
       const result = await scoreIgc(content);
 
       // Write track file with full data for Flightmap rendering
-      const trackKey = `scores/tracks/${userId}/${flightId}.json`;
+      const trackKey = `${S}scores/tracks/${userId}/${flightId}.json`;
       await putObject(
         trackKey,
         JSON.stringify({
@@ -84,7 +88,7 @@ async function main() {
       );
 
       // Move to processed first so we can store the final key
-      const processedKey = key.replace("incoming/", "processed/");
+      const processedKey = key.replace("incoming/", `${S}processed/`);
       await moveObject(key, processedKey);
 
       // Build flight entry
@@ -140,7 +144,7 @@ async function main() {
       userData.stats = computeStats(userData.flights);
 
       await putObject(
-        `scores/users/${userId}.json`,
+        `${S}scores/users/${userId}.json`,
         JSON.stringify(userData, null, 2)
       );
     } catch (err) {
@@ -151,7 +155,7 @@ async function main() {
   // Apply friends bonus and build leaderboard
   console.log("Computing friends bonus and building leaderboard...");
   try {
-    const userKeys = await listObjects("scores/users/");
+    const userKeys = await listObjects(`${S}scores/users/`);
     const jsonKeys = userKeys.filter((k) => k.endsWith(".json"));
 
     // Load all user data
@@ -222,7 +226,7 @@ async function main() {
     };
 
     await putObject(
-      "scores/leaderboard.json",
+      `${S}scores/leaderboard.json`,
       JSON.stringify(leaderboard, null, 2)
     );
     console.log(`Leaderboard updated with ${rankings.length} user(s).`);

@@ -14,6 +14,9 @@ import { scoreIgc, computeFriendsBonus, FRIENDS_MULTIPLIER, type FlightRef } fro
 import { type FlightEntry, type UserData, type LeaderboardEntry, computeStats } from "./user_data.js";
 
 const DRY_RUN = process.argv.includes("--dry-run");
+const seasonArg = process.argv.find(a => a.startsWith("--season="));
+const SEASON = seasonArg !== undefined ? seasonArg.slice("--season=".length) : (process.env.SEASON ?? "2026");
+const S = SEASON ? `${SEASON}/` : ""; // e.g. "2026/"
 
 async function main() {
   if (DRY_RUN) console.log("DRY RUN — results will not be written to R2.\n");
@@ -34,7 +37,7 @@ async function main() {
 
   // List all tracks in processed/
   console.log("\nListing processed tracks...");
-  const allKeys = await listObjects("processed/");
+  const allKeys = await listObjects(`${S}processed/`);
   const trackKeys = allKeys.filter((k) => {
     const ext = k.split(".").pop()?.toLowerCase();
     return ext === "igc" || ext === "gpx";
@@ -65,7 +68,7 @@ async function main() {
       const content = await getObject(key);
       const result = await scoreIgc(content);
 
-      const trackKey = `scores/tracks/${userId}/${flightId}.json`;
+      const trackKey = `${S}scores/tracks/${userId}/${flightId}.json`;
       if (!DRY_RUN) {
         await putObject(
           trackKey,
@@ -147,7 +150,7 @@ async function main() {
     );
 
     if (!DRY_RUN) {
-      await putObject(`scores/users/${userId}.json`, JSON.stringify(userData, null, 2));
+      await putObject(`${S}scores/users/${userId}.json`, JSON.stringify(userData, null, 2));
     }
 
     rankings.push({
@@ -169,7 +172,7 @@ async function main() {
 
   console.log(`\nLeaderboard: ${rankings.length} user(s)`);
   if (!DRY_RUN) {
-    await putObject("scores/leaderboard.json", JSON.stringify(leaderboard, null, 2));
+    await putObject(`${S}scores/leaderboard.json`, JSON.stringify(leaderboard, null, 2));
   }
 
   if (DRY_RUN) {

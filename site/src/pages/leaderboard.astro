@@ -4,13 +4,15 @@ import Base from "../layouts/Base.astro";
 
 <Base title="Leaderboard - NorCal H&F">
   <div class="w-full max-w-4xl mx-auto p-4">
-    <h1 class="text-center">2026 Leaderboard</h1>
+    <h1 id="leaderboard-title" class="text-center">Leaderboard</h1>
 
     <div id="leaderboard-loading" class="text-center text-gray-500 py-8">
       Loading leaderboard...
     </div>
 
     <div id="leaderboard-error" class="text-center text-red-600 py-8 hidden"></div>
+
+    <div id="division-filter" class="hidden flex flex-wrap gap-2 mb-4"></div>
 
     <div id="leaderboard-table" class="hidden overflow-x-auto">
       <p id="leaderboard-updated" class="text-sm text-gray-500 text-right mb-2"></p>
@@ -36,19 +38,34 @@ import Base from "../layouts/Base.astro";
 <script>
   import { R2_PUBLIC_URL } from "../config";
 
+  const params = new URLSearchParams(window.location.search);
+  const season = params.get("season") ?? "2026";
+  const prefix = `${season}/`;
+  const flightsSuffix = `&season=${season}`;
+
+  document.getElementById("leaderboard-title")!.textContent =
+    season === "prologue" ? "Prologue Leaderboard" : `${season} Leaderboard`;
+
   let rankings: any[] = [];
   let currentSort = "total_score";
+  let currentDivision = "Overall";
 
-  function renderRankings(sortKey: string) {
+  function renderRankings(sortKey: string, division?: string) {
     currentSort = sortKey;
+    if (division !== undefined) currentDivision = division;
+
+    const filtered = currentDivision === "Overall"
+      ? rankings
+      : rankings.filter(r => (r.category || "—") === currentDivision);
+
     const body = document.getElementById("leaderboard-body")!;
-    const sorted = [...rankings].sort((a, b) => b[sortKey] - a[sortKey]);
+    const sorted = [...filtered].sort((a, b) => b[sortKey] - a[sortKey]);
     body.innerHTML = sorted
       .map(
         (r: any, i: number) => `
       <tr class="border-b border-gray-200 hover:bg-gray-50">
         <td class="py-2 px-3">${i + 1}</td>
-        <td class="py-2 px-3"><a href="/flights?user=${r.user_id}">${r.display_name}</a></td>
+        <td class="py-2 px-3"><a href="/flights?user=${r.user_id}${flightsSuffix}">${r.display_name}</a></td>
         <td class="py-2 px-3">${r.category || "—"}</td>
         <td class="text-right py-2 px-3">${r.total_score.toFixed(1)}</td>
         <td class="text-right py-2 px-3">${r.total_flights}</td>
@@ -64,6 +81,28 @@ import Base from "../layouts/Base.astro";
       const isActive = btn.dataset.key === sortKey;
       btn.textContent = isActive ? `${label} ▼` : label;
     });
+
+    document.querySelectorAll<HTMLElement>(".division-btn").forEach((btn) => {
+      const active = btn.dataset.division === currentDivision;
+      btn.className = active
+        ? "division-btn px-3 py-1 rounded text-sm font-medium bg-gray-800 text-white"
+        : "division-btn px-3 py-1 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700";
+    });
+  }
+
+  function buildDivisionFilter() {
+    const divisions = ["Overall", ...Array.from(new Set(rankings.map(r => r.category || "—"))).sort()];
+    if (divisions.length <= 2) return; // Only "All" + one division — not worth showing
+
+    const container = document.getElementById("division-filter")!;
+    container.innerHTML = divisions.map(d =>
+      `<button class="division-btn px-3 py-1 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700" data-division="${d}">${d}</button>`
+    ).join("");
+    container.classList.remove("hidden");
+
+    container.querySelectorAll<HTMLElement>(".division-btn").forEach(btn => {
+      btn.addEventListener("click", () => renderRankings(currentSort, btn.dataset.division!));
+    });
   }
 
   async function loadLeaderboard() {
@@ -73,13 +112,14 @@ import Base from "../layouts/Base.astro";
     const updated = document.getElementById("leaderboard-updated")!;
 
     try {
-      const res = await fetch(`${R2_PUBLIC_URL}/scores/leaderboard.json`, { cache: 'no-store' });
+      const res = await fetch(`${R2_PUBLIC_URL}/${prefix}scores/leaderboard.json`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
       updated.textContent = `Updated: ${new Date(data.updated_at).toLocaleDateString()}`;
       rankings = data.rankings;
 
+      buildDivisionFilter();
       renderRankings(currentSort);
 
       document.querySelectorAll<HTMLElement>(".sort-btn").forEach((btn) => {
