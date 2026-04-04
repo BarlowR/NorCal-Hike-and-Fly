@@ -16,6 +16,10 @@ All scoring is done using IGC or GPX tracklogs. These tracklogs must contain a s
 
 Tracklogs must be submitted within 7 days. Tracklogs can be submitted on the Tracklog Upload tab.
 
+#### Geographic Region
+
+All tracks must be completed within California or the surrounding area. 
+
 #### Hiking
 
 All hiking must be performed with a full equipment set (wing, harness, reserve(s), etc.). The same equipment set must be used for the whole tracklog, including all flying portions. All tracklogs must include at least 3km of hiking (Sorry, this isn't XContest).
