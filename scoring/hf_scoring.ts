@@ -3,8 +3,8 @@ import { solver, scoringRules as scoring } from 'igc-xc-score';
 import { analyze } from './analyze_flight.js';
 import { parseGpx } from './gpx_parser.js';
 import { Point } from 'igc-xc-score/src/foundation.js';
-export const COMPETITION_START_HOUR = 8;   // 8:00 AM local
-export const COMPETITION_END_HOUR   = 17;  // 5:00 PM local
+export const COMPETITION_START_HOUR = 6;   // 6:00 AM local
+export const COMPETITION_END_HOUR   = 18;  // 6:00 PM local
 
 /**
  * Parse the HFTZNTIMEZONE header from an IGC file and return an Etc/GMT
@@ -98,7 +98,7 @@ export async function scoreTrack(file_contents: string) {
             ? parseGpx(file_contents)
             : IGCParser.parse(file_contents, { lenient: true })) as any;
 
-        // Determine timezone and filter fixes to 8am–5pm local time.
+        // Determine timezone and filter fixes to contest window local time.
         const tz = !isGpx ? igcTimeZone(file_contents) : null;
         const timeZone = tz ?? await (async () => {
             const validFix = flight.fixes.find((f: any) => f.latitude !== 0 || f.longitude !== 0)

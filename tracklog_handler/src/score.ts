@@ -114,7 +114,7 @@ export async function scoreIgc(igcContent: string): Promise<ScoreResult> {
 
   // Compute flight segments (takeoff/landing timestamps) from analyzed fixes.
   // Using timestamps rather than indexes so the client can apply them to the
-  // raw IGC/GPX (which may include fixes outside the 8am-5pm time window).
+  // raw IGC/GPX (which may include fixes outside the contest window).
   const analyzedFixes: any[] = (flight as any).filtered ?? flight.fixes;
   const flightSegments: TrackData["flightSegments"] = [];
   let inFlight = false;

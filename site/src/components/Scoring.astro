@@ -124,7 +124,7 @@
       return;
     }
     if ('tooLong' in result) {
-      showStatus(`Track spans ${(result as any).durationH} hours — longer than the 9-hour competition window (8am–5pm).`, true);
+      showStatus(`Track spans ${(result as any).durationH} hours — longer than the 12 hour competition window (6am-6pm).`, true);
       return;
     }
 
@@ -148,7 +148,7 @@
     addResult('Type', type ?? '—');
     addResult('Score', result.score.toFixed(2) ?? '—');
     if (result.filteredByTime){
-      addResult('', "Filtered by time, track started before 8am or ended after 5pm");
+      addResult('', "Filtered by time, track started before 6am or ended after 6pm");
     }
     if (tooShort) {
       addResult('', `Hiking distance ${result.groundDist?.toFixed(2)} km is below the 3 km minimum`);
