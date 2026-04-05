@@ -1,0 +1,392 @@
+---
+// MergeTracks.astro
+// Tool for merging multiple tracklogs (IGC/GPX) into a single GPX file
+// for NorCal Hike & Fly contest submission.
+---
+
+<div class="flex flex-col gap-4 w-full">
+  <p class="text-sm text-gray-600">
+    Merge multiple tracklogs (IGC or GPX) into a single GPX file for contest submission.
+    Useful if you record your hike and flight with separate devices.
+  </p>
+
+  <div id="tracks-container" class="flex flex-col gap-3">
+  </div>
+
+  <button
+    id="add-track-btn"
+    class="self-start text-sm text-gray-500 hover:text-gray-800 transition-colors flex items-center gap-1"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+    </svg>
+    Add another track
+  </button>
+
+  <div id="merge-status" class="text-center text-sm text-gray-500 hidden"></div>
+
+  <!-- Merge info -->
+  <div id="merge-info" class="hidden rounded-lg border border-gray-200 bg-white p-4">
+    <h3 class="font-semibold text-lg mb-3">Merge Summary</h3>
+    <dl id="merge-info-list" class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm"></dl>
+  </div>
+
+  <!-- Map preview -->
+  <div id="merge-map" class="w-full h-96 rounded-lg border border-gray-200 bg-gray-100 hidden"></div>
+
+  <!-- Download -->
+  <div id="merge-download-section" class="hidden flex flex-col items-center gap-2 pb-8">
+    <button
+      id="merge-download-btn"
+      class="rounded-md bg-green-600 px-6 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
+    >
+      Download Merged GPX
+    </button>
+    <span class="text-xs text-gray-500">You can then upload this file in the Tracklog Upload tab.</span>
+  </div>
+</div>
+
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+  crossorigin=""
+/>
+
+<script>
+  import { parseFixes, type ParsedFix } from "../ts/parseFixes.ts";
+  import L from 'leaflet';
+
+  const tracksContainer = document.getElementById('tracks-container')!;
+  const addTrackBtn = document.getElementById('add-track-btn')!;
+  const mergeStatus = document.getElementById('merge-status')!;
+  const mergeInfo = document.getElementById('merge-info')!;
+  const mergeInfoList = document.getElementById('merge-info-list')!;
+  const mapContainer = document.getElementById('merge-map')!;
+  const downloadSection = document.getElementById('merge-download-section')!;
+  const downloadBtn = document.getElementById('merge-download-btn')!;
+
+  interface TrackSlot {
+    id: number;
+    fixes: ParsedFix[];
+    filename: string;
+    element: HTMLElement;
+  }
+
+  const TRACK_COLORS = ['#8856fc', '#001bff', '#16a34a', '#ea580c', '#db2777', '#0891b2'];
+
+  let slots: TrackSlot[] = [];
+  let nextId = 0;
+  let mergedGpx = '';
+  let map: L.Map | null = null;
+  let layerGroup: L.LayerGroup | null = null;
+
+  function showStatus(msg: string, isError = false) {
+    mergeStatus.textContent = msg;
+    mergeStatus.classList.remove('hidden', 'text-red-600', 'text-gray-500');
+    mergeStatus.classList.add(isError ? 'text-red-600' : 'text-gray-500');
+  }
+
+  function hideStatus() {
+    mergeStatus.classList.add('hidden');
+  }
+
+  function readFile(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsText(file);
+    });
+  }
+
+  function colorForIndex(i: number): string {
+    return TRACK_COLORS[i % TRACK_COLORS.length];
+  }
+
+  function createTrackSlot(label: string): TrackSlot {
+    const id = nextId++;
+    const color = colorForIndex(slots.length);
+    const removable = slots.length >= 2; // first two are not removable by default
+
+    const el = document.createElement('div');
+    el.className = 'flex items-center gap-2';
+    el.innerHTML = `
+      <label
+        class="track-drop-zone flex-1 flex flex-col items-center justify-center gap-2 p-5 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-gray-500 hover:bg-gray-50 transition-colors"
+        data-track-id="${id}"
+        data-color="${color}"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+        </svg>
+        <span class="text-sm text-gray-600 text-center">${label} (IGC or GPX)</span>
+        <span class="track-filename text-xs font-medium truncate max-w-full" style="color: ${color}"></span>
+        <input type="file" accept=".igc,.IGC,.gpx,.GPX" class="hidden track-file-input" />
+      </label>
+      <button
+        class="track-remove-btn text-gray-300 hover:text-red-500 transition-colors p-1 ${removable ? '' : 'invisible'}"
+        data-track-id="${id}"
+        title="Remove track"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    `;
+
+    const slot: TrackSlot = { id, fixes: [], filename: '', element: el };
+
+    // Wire up file input
+    const input = el.querySelector('.track-file-input') as HTMLInputElement;
+    const dropZone = el.querySelector('.track-drop-zone') as HTMLElement;
+    const filenameEl = el.querySelector('.track-filename') as HTMLElement;
+
+    input.addEventListener('change', () => {
+      if (input.files?.[0]) handleTrackFile(slot, input.files[0], dropZone, filenameEl);
+    });
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('border-gray-500', 'bg-gray-50');
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('border-gray-500', 'bg-gray-50');
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('border-gray-500', 'bg-gray-50');
+      if (e.dataTransfer?.files?.[0]) handleTrackFile(slot, e.dataTransfer.files[0], dropZone, filenameEl);
+    });
+
+    // Wire up remove button
+    const removeBtn = el.querySelector('.track-remove-btn') as HTMLElement;
+    removeBtn.addEventListener('click', () => removeTrackSlot(slot));
+
+    return slot;
+  }
+
+  async function handleTrackFile(slot: TrackSlot, file: File, dropZone: HTMLElement, filenameEl: HTMLElement) {
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (ext !== 'igc' && ext !== 'gpx') {
+      showStatus('File must be .igc or .gpx', true);
+      return;
+    }
+    try {
+      const contents = await readFile(file);
+      slot.fixes = parseFixes(contents);
+      slot.filename = file.name;
+      filenameEl.textContent = file.name;
+      const color = dropZone.dataset.color!;
+      dropZone.style.borderColor = color;
+      hideStatus();
+      tryMerge();
+    } catch (err: any) {
+      showStatus(`Error parsing ${file.name}: ${err.message}`, true);
+    }
+  }
+
+  function removeTrackSlot(slot: TrackSlot) {
+    slots = slots.filter(s => s.id !== slot.id);
+    slot.element.remove();
+    updateRemoveButtons();
+    tryMerge();
+  }
+
+  function updateRemoveButtons() {
+    // Show remove buttons only if there are more than 2 slots
+    slots.forEach(s => {
+      const btn = s.element.querySelector('.track-remove-btn') as HTMLElement;
+      btn.classList.toggle('invisible', slots.length <= 2);
+    });
+  }
+
+  function addSlot(label: string) {
+    const slot = createTrackSlot(label);
+    slots.push(slot);
+    tracksContainer.appendChild(slot.element);
+    updateRemoveButtons();
+  }
+
+  // Initialize with two default slots
+  addSlot('Track 1');
+  addSlot('Track 2');
+
+  addTrackBtn.addEventListener('click', () => {
+    addSlot(`Track ${slots.length + 1}`);
+  });
+
+  function tryMerge() {
+    const loaded = slots.filter(s => s.fixes.length > 0);
+    if (loaded.length < 2) {
+      mergeInfo.classList.add('hidden');
+      mapContainer.classList.add('hidden');
+      downloadSection.classList.add('hidden');
+      return;
+    }
+    mergeAndDisplay(loaded);
+  }
+
+  function mergeAllFixes(loaded: TrackSlot[]): ParsedFix[] {
+    // Collect all fixes, tagged with their slot index for coloring
+    const allFixes: (ParsedFix & { _slotIdx: number })[] = [];
+    for (let i = 0; i < loaded.length; i++) {
+      for (const fix of loaded[i].fixes) {
+        allFixes.push({ ...fix, _slotIdx: i });
+      }
+    }
+
+    // Sort by timestamp
+    allFixes.sort((a, b) => a.timestamp - b.timestamp);
+
+    // Deduplicate: if two points from different tracks are within 2 seconds,
+    // keep the one from the later-listed track
+    const DEDUP_MS = 2000;
+    const deduped: (ParsedFix & { _slotIdx: number })[] = [];
+    for (const fix of allFixes) {
+      const prev = deduped[deduped.length - 1];
+      if (prev && fix.timestamp - prev.timestamp < DEDUP_MS && fix._slotIdx !== prev._slotIdx) {
+        deduped[deduped.length - 1] = fix;
+      } else {
+        deduped.push(fix);
+      }
+    }
+    return deduped;
+  }
+
+  function fixesToGpx(fixes: ParsedFix[]): string {
+    const date = new Date(fixes[0].timestamp).toISOString().split('T')[0];
+    let gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="NorCal HF Track Merger"
+  xmlns="http://www.topografix.com/GPX/1/1"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <trk>
+    <name>Merged Hike and Fly - ${date}</name>
+    <trkseg>
+`;
+    for (const fix of fixes) {
+      const time = new Date(fix.timestamp).toISOString();
+      gpx += `      <trkpt lat="${fix.latitude.toFixed(7)}" lon="${fix.longitude.toFixed(7)}">
+        <ele>${fix.gpsAltitude.toFixed(1)}</ele>
+        <time>${time}</time>
+      </trkpt>
+`;
+    }
+    gpx += `    </trkseg>
+  </trk>
+</gpx>`;
+    return gpx;
+  }
+
+  function initMap() {
+    if (map) return;
+    map = L.map(mapContainer).setView([0, 0], 2);
+    L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a> contributors',
+      maxZoom: 17,
+    }).addTo(map);
+    layerGroup = L.layerGroup().addTo(map);
+  }
+
+  function displayOnMap(merged: (ParsedFix & { _slotIdx?: number })[], loaded: TrackSlot[]) {
+    mapContainer.classList.remove('hidden');
+    initMap();
+    layerGroup!.clearLayers();
+
+    // Draw each segment colored by source track
+    type Segment = { slotIdx: number; points: L.LatLngExpression[] };
+    const segments: Segment[] = [];
+    let currentSlot: number | null = null;
+    let currentPoints: L.LatLngExpression[] = [];
+
+    for (const fix of merged) {
+      const idx = (fix as any)._slotIdx ?? 0;
+      if (idx !== currentSlot) {
+        if (currentPoints.length > 0) {
+          segments.push({ slotIdx: currentSlot!, points: currentPoints });
+          currentPoints = [currentPoints[currentPoints.length - 1]];
+        }
+        currentSlot = idx;
+      }
+      currentPoints.push([fix.latitude, fix.longitude]);
+    }
+    if (currentPoints.length > 0) {
+      segments.push({ slotIdx: currentSlot!, points: currentPoints });
+    }
+
+    for (const seg of segments) {
+      const slotArrayIdx = loaded.findIndex(s => slots.indexOf(s) === seg.slotIdx || loaded.indexOf(s) === seg.slotIdx);
+      const color = colorForIndex(seg.slotIdx);
+      L.polyline(seg.points, {
+        color,
+        weight: 4,
+        opacity: 0.9,
+      }).addTo(layerGroup!);
+    }
+
+    // Fit bounds
+    const allPoints: L.LatLngExpression[] = merged.map(f => [f.latitude, f.longitude]);
+    if (allPoints.length >= 2) {
+      map!.fitBounds(L.latLngBounds(allPoints), { padding: [40, 40] });
+    }
+    setTimeout(() => map!.invalidateSize(), 100);
+  }
+
+  function mergeAndDisplay(loaded: TrackSlot[]) {
+    showStatus('Merging tracks...');
+
+    try {
+      const merged = mergeAllFixes(loaded);
+      mergedGpx = fixesToGpx(merged);
+
+      // Show info
+      mergeInfoList.innerHTML = '';
+      const addInfo = (label: string, value: string) => {
+        const dt = document.createElement('dt');
+        dt.className = 'text-gray-500';
+        dt.textContent = label;
+        const dd = document.createElement('dd');
+        dd.className = 'font-medium';
+        dd.textContent = value;
+        mergeInfoList.append(dt, dd);
+      };
+
+      const fmt = (ms: number) => new Date(ms).toLocaleTimeString();
+
+      // Per-track info
+      for (const slot of loaded) {
+        const start = slot.fixes[0].timestamp;
+        const end = slot.fixes[slot.fixes.length - 1].timestamp;
+        addInfo(slot.filename, `${slot.fixes.length} points (${fmt(start)} – ${fmt(end)})`);
+      }
+
+      addInfo('Merged points', `${merged.length}`);
+
+      const totalDuration = (merged[merged.length - 1].timestamp - merged[0].timestamp) / 3600000;
+      addInfo('Total duration', `${totalDuration.toFixed(1)} hours`);
+
+      mergeInfo.classList.remove('hidden');
+      downloadSection.classList.remove('hidden');
+
+      displayOnMap(merged, loaded);
+      hideStatus();
+    } catch (err: any) {
+      showStatus(`Error merging: ${err.message}`, true);
+    }
+  }
+
+  downloadBtn.addEventListener('click', () => {
+    if (!mergedGpx) return;
+    const loaded = slots.filter(s => s.fixes.length > 0);
+    const earliest = Math.min(...loaded.map(s => s.fixes[0].timestamp));
+    const date = new Date(earliest).toISOString().split('T')[0];
+    const blob = new Blob([mergedGpx], { type: 'application/gpx+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `merged_hike_fly_${date}.gpx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+</script>
