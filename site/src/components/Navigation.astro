@@ -5,14 +5,12 @@ import { Content as Prologue } from '../content/Prologue.md';
 import { Content as TracklogRecording } from '../content/TracklogRecording.md';
 import About from '../content/About.astro';
 import Scoring from '../content/Scoring.astro';
-import MergeTracks from '../content/MergeTracks.astro';
 // ComponentToggle.astro
 const tabs = [
   { id: 'overview', label: 'Overview' },
   { id: 'rules', label: 'Rules' },
   { id: 'tracklog-recording', label: 'Tracklog Help' },
   { id: 'scoring', label: 'Tracklog Upload' },
-  { id: 'merge-tracks', label: 'Merge Tracks' },
   { id: 'prologue', label: 'Prologue' },
   { id: 'about', label: 'About' },
 ];
@@ -23,7 +21,7 @@ const tabs = [
   <div class="flex flex-col border-b border-gray-200 mb-6">
     <!-- Main tabs: Prologue and About wrap together when narrow -->
     <div class="flex flex-wrap justify-center">
-      {tabs.filter(t => t.id !== 'scoring' && t.id !== 'merge-tracks' && t.id !== 'prologue' && t.id !== 'about').map(tab => (
+      {tabs.filter(t => t.id !== 'scoring' && t.id !== 'prologue' && t.id !== 'about').map(tab => (
         <button
           class="tab-button px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-600 hover:text-gray-900 border-b-2 border-transparent transition-colors"
           data-tab={tab.id}
@@ -54,12 +52,12 @@ const tabs = [
       >
         Tracklog Upload
       </button>
-      <button
-        class="tab-button px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-600 hover:text-gray-900 border-b-2 border-transparent transition-colors"
-        data-tab="merge-tracks"
+      <a
+        href="https://merge.norcalhf.com"
+        class="px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-600 hover:text-gray-900 border-b-2 border-transparent transition-colors no-underline"
       >
         Merge Tracks
-      </button>
+      </a>
       <a
         href="/leaderboard"
         class="px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-600 hover:text-gray-900 border-b-2 border-transparent transition-colors no-underline"
@@ -94,9 +92,6 @@ const tabs = [
     <Scoring />
   </div>
 
-  <div class="tab-content hidden" data-content="merge-tracks">
-    <MergeTracks />
-  </div>
 </div>
 
 <script>
