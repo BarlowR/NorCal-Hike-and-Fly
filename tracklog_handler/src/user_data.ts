@@ -43,7 +43,7 @@ export interface LeaderboardEntry {
 
 export function computeStats(flights: FlightEntry[]): UserData["stats"] {
   const scores = flights.map((f) => f.score);
-  const top2 = [...scores].sort((a, b) => b - a).slice(0, 2);
+  const top2 = [...scores].sort((a, b) => b - a).slice(0, 4);
   return {
     total_score: top2.reduce((a, b) => a + b, 0),
     total_km: flights.reduce((a, f) => a + f.breakdown.hiking_km, 0),
