@@ -54,13 +54,14 @@ async function main() {
   let ok = 0, failed = 0;
 
   for (const key of trackKeys) {
-    const parts = key.split("/");
-    if (parts.length < 3) {
+    const relKey = key.slice(`${S}processed/`.length);
+    const parts = relKey.split("/");
+    if (parts.length < 2) {
       console.warn(`  Unexpected key format, skipping: ${key}`);
       continue;
     }
-    const userId = parts[1];
-    const filename = parts.slice(2).join("/");
+    const userId = parts[0];
+    const filename = parts.slice(1).join("/");
     const flightId = filename.replace(/\.(igc|gpx)$/i, "");
 
     process.stdout.write(`  ${key} ... `);
