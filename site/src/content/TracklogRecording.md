@@ -27,6 +27,5 @@ GPX tracks are allowed, so you can record your day's flight with any device whic
 #### Tips
 
 - Remember to record for the entire day. Start recording before you leave your car and stop after you return. The scoring system will truncate tracks to the 6am–6pm window automatically.
-- Do not stop and restart the recording mid-day. All scoring is done from a single continuous tracklog.
-- If you record the hike and fly portions separately, you can use [this tool](https://merge.norcalhf.com) to merge them before submitting a combined track.
+- All scoring is done from a single continuous tracklog. If you record the hike and fly portions separately, you can use [this tool](https://merge.norcalhf.com) to merge them before submitting a combined track.
 - Submit within **7 days** via the Tracklog Upload tab.
