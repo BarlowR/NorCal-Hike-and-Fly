@@ -146,6 +146,8 @@ async function runTests(): Promise<number> {
 
     let casePassed = true;
 
+    const matchedDetected = new Set<(typeof detected)[0]>();
+
     for (let si = 0; si < testCase.expected.length; si++) {
       const exp = testCase.expected[si];
 
@@ -177,6 +179,8 @@ async function runTests(): Promise<number> {
         continue;
       }
 
+      matchedDetected.add(bestMatch);
+
       const detLaunchTs = filteredFixes[bestMatch.launch].timestamp;
       const detLandingTs = filteredFixes[bestMatch.landing].timestamp;
       const launchDiff = detLaunchTs - exp.launch_timestamp_ms;
@@ -206,6 +210,21 @@ async function runTests(): Promise<number> {
           console.log(
             `             detected ${fmt(detLandingTs)}  (${fmtDiff(landingDiff)}, tolerance ±${TOLERANCE_MS / 1000}s)`
           );
+        }
+      }
+    }
+
+    // Check for extra detected segments not matched by any expected entry.
+    // Skip for rejection-only test cases (expected_rejection set, no expected segments).
+    if (detected && !testCase.expected_rejection) {
+      for (const det of detected) {
+        if (!matchedDetected.has(det)) {
+          casePassed = false;
+          const detLaunchTs = filteredFixes[det.launch]?.timestamp;
+          const detLandingTs = filteredFixes[det.landing]?.timestamp;
+          console.log(`  ✗ Extra segment detected (not in expected):`);
+          console.log(`    Launch  ${detLaunchTs != null ? fmt(detLaunchTs) : "?"}`);
+          console.log(`    Landing ${detLandingTs != null ? fmt(detLandingTs) : "?"}`);
         }
       }
     }

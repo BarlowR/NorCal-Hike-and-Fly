@@ -27,10 +27,16 @@ const maPeriod = 10;
 const definitionFlight = {
   t: 10,
   x0: 1.5,
-  xt: 5,
+  xt: 6,     // raised from 5; filters GPS horizontal noise that barely cleared old threshold
   z0: 0.05,
   zt: 0.3,   // lowered from 0.9; GPX altitude smoothing suppresses vspeed
 };
+
+/** Cap per-fix speeds before moving average to prevent GPS spikes from inflating hma/vma.
+ *  A single bad GPS fix can inflate a centered ±5s window for all surrounding fixes.
+ *  Paragliders realistically stay well below these limits. */
+const MAX_VSPEED_MS = 10;  // m/s (~36 km/h vertical — well above any real climb/sink)
+const MAX_HSPEED_MS = 30;  // m/s (~108 km/h — well above normal thermalling speed)
 
 const definitionGround = {
   xmax: 5,
@@ -38,9 +44,10 @@ const definitionGround = {
 };
 
 // detectLaunchLanding tuning
-const MERGE_FLIGHT_GAP_MS = 180_000;  // merge stateFlight blocks < 3 min apart
-const SUSTAINED_GROUND_MS = 30_000;   // require 30 s of stateGround to confirm landing
-const LAUNCH_HSPEED_MAX   = 1.5;      // m/s: walk back to last clearly-ground speed
+const MERGE_FLIGHT_GAP_MS    = 180_000;  // merge stateFlight blocks < 3 min apart
+const SUSTAINED_GROUND_MS    = 30_000;   // require 30 s of stateGround to confirm landing
+const LAUNCH_HSPEED_MAX      = 1.5;      // m/s: walk back to last clearly-ground speed
+const MIN_FLIGHT_DURATION_MS = 300_000;  // discard segments shorter than 5 min (GPS noise)
 
 import { Point } from 'igc-xc-score/src/foundation.js';
 
@@ -90,11 +97,18 @@ function prepare(fixes: Fix[]) {
         fixes[i].dist = new Point(fixes, i - 1).distanceEarth(
           new Point(fixes, i)
         );
-        fixes[i].hspeed =
-          fixes[i].dist! * 1000 / deltaTimestamp * 1000;
-        fixes[i].vspeed =
-          (fixes[i].pressureAltitude! - fixes[i - 1].pressureAltitude!) /
-            deltaTimestamp * 1000;
+        fixes[i].hspeed = Math.min(
+          MAX_HSPEED_MS,
+          fixes[i].dist! * 1000 / deltaTimestamp * 1000
+        );
+        fixes[i].vspeed = Math.max(
+          -MAX_VSPEED_MS,
+          Math.min(
+            MAX_VSPEED_MS,
+            (fixes[i].pressureAltitude! - fixes[i - 1].pressureAltitude!) /
+              deltaTimestamp * 1000
+          )
+        );
       } else {
         fixes[i].hspeed = fixes[i - 1].hspeed;
         fixes[i].vspeed = fixes[i - 1].vspeed;
