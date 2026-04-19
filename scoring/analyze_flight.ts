@@ -227,13 +227,29 @@ function detectLaunchLanding(fixes: Fix[]) {
     ll.push({ launch, landing });
   }
 
-  // 4. Mark onGround for all fixes.
+  // 4. Merge overlapping segments. This can happen when the launch walk-back
+  //    of a later block extends into the flight range of an earlier block
+  //    (e.g., two stateFlight groups separated by just over MERGE_FLIGHT_GAP_MS
+  //    whose walk-backs overlap). Sort by launch index and merge any pair where
+  //    the later segment's launch falls before the earlier segment's landing.
+  ll.sort((a, b) => a.launch - b.launch);
+  const merged2: typeof ll = [];
+  for (const seg of ll) {
+    const prev = merged2[merged2.length - 1];
+    if (prev && seg.launch <= prev.landing) {
+      prev.landing = Math.max(prev.landing, seg.landing);
+    } else {
+      merged2.push({ ...seg });
+    }
+  }
+
+  // 5. Mark onGround for all fixes.
   for (const fix of fixes) fix.onGround = true;
-  for (const { launch, landing } of ll) {
+  for (const { launch, landing } of merged2) {
     for (let i = launch + 1; i < landing; i++) fixes[i].onGround = false;
   }
 
-  return ll;
+  return merged2;
 }
 
 export function analyze(flight: Flight, config: AnalyzeConfig) {
