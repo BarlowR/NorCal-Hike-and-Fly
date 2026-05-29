@@ -11,9 +11,11 @@ NorCal-Hike-and-Fly/
 │   ├── hf_scoring.ts       # Main scoring pipeline
 │   ├── analyze_flight.ts   # Launch/landing detection algorithm
 │   ├── gpx_parser.ts       # GPX file parser
-│   └── parseFixes.ts       # Flight fix utilities
+│   ├── parseFixes.ts       # Flight fix utilities
+│   └── Rules.md            # Scoring rules documentation
 ├── tracklog_handler/
 │   ├── worker/             # Cloudflare Worker (upload endpoint)
+│   ├── registration-worker/ # Cloudflare Worker (pilot registration)
 │   ├── src/                # Node.js processing pipeline
 │   ├── tests/              # Sample tracks and labeled test cases
 │   └── label_tool.ipynb    # Jupyter notebook for labeling takeoff/landing
@@ -61,7 +63,8 @@ A Cloudflare Worker that accepts tracklog uploads from pilots. It:
 ### Upload rules
 
 - Accepted file formats: `.igc`, `.gpx` (10 MB max)
-- Uploads are only accepted during the contest window (March 1–31)
+- Uploads are only accepted during the contest window (April 1 – October 31, 2026)
+- Tracklog date must fall within the contest window
 - Rate limited to 10 uploads per IP per minute (enforced via Cloudflare KV)
 - Duplicate files (same SHA-256 hash per user) are rejected silently
 
@@ -76,7 +79,7 @@ Requires a `wrangler.toml` with an R2 bucket (`tracklogs`) and KV namespace (`RA
 
 ### Adding a pilot
 
-Add an entry to the pilot registry (JSON object uploaded to R2 root):
+Add an entry to the pilot registry (JSON object uploaded to R2 root as `users.json`):
 
 ```json
 {
@@ -99,10 +102,12 @@ npm run process
 The script:
 1. Lists files in `incoming/` in R2
 2. Scores each tracklog (IGC or GPX)
-3. Writes scored track data to `scores/tracks/<user_id>/<flight_id>.json`
-4. Updates per-user flight history at `scores/users/<user_id>.json`
-5. Rebuilds the leaderboard at `scores/leaderboard.json`
+3. Writes scored track data to `<season>/scores/tracks/<user_id>/<flight_id>.json`
+4. Updates per-user flight history at `<season>/scores/users/<user_id>.json`
+5. Rebuilds the leaderboard at `<season>/scores/leaderboard.json`
 6. Moves processed files from `incoming/` to `processed/`
+
+The active season defaults to `2026` and can be overridden via the `SEASON` environment variable or a `--season=<year>` argument.
 
 ### Additional pipeline commands
 
@@ -110,11 +115,23 @@ The script:
 # Re-score all previously processed flights (e.g. after a rule change)
 npm run rescore
 
-# Clear all scores and leaderboard
+# Re-score locally against a synced copy of R2 data (non-destructive)
+npm run rescore:local
+
+# Download processed tracks and scores from R2 to a local directory
+npm run sync-local
+
+# Back up the entire R2 bucket to a local directory
+npm run backup
+
+# Prologue data migration to prologue/ prefix
+npm run archive-prologue
+
+# (Dangerous!!) Clear all scores and leaderboard for the current season
 npm run reset
 ```
 
-Both commands require a `.env` file with R2 credentials.
+`rescore:local` and `sync-local` require both `.env` (R2 credentials) and `.env.local` (`LOCAL_DATA_DIR`).
 
 ### Supported file formats
 
@@ -170,10 +187,14 @@ GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx
 
 ```
 tracklogs/
-├── incoming/<user_id>/<timestamp>-<file>   # Awaiting processing
-├── processed/<user_id>/<timestamp>-<file>  # Already processed
-└── scores/
-    ├── leaderboard.json                # Competition standings
-    ├── users/<user_id>.json            # Per-pilot flight history
-    └── tracks/<user_id>/<flight_id>.json   # Track data for map display
+├── users.json                                  # Pilot registry
+├── incoming/<user_id>/<timestamp>-<file>       # Awaiting processing
+├── processed/<user_id>/<timestamp>-<file>      # Already processed
+├── prologue/                                   # Archived prologue data
+│   ├── scores/
+│   └── processed/
+└── <season>/scores/                            # Per-season scored data (e.g. 2026/)
+    ├── leaderboard.json                        # Competition standings
+    ├── users/<user_id>.json                    # Per-pilot flight history
+    └── tracks/<user_id>/<flight_id>.json       # Track data for map display
 ```
