@@ -40,7 +40,7 @@ export function filterByTimeWindow<T extends { timestamp: number }>(
     });
 }
 
-async function getTimezone(lat: number, lon: number): Promise<string> {
+export async function getTimezone(lat: number, lon: number): Promise<string> {
     try {
         const res = await fetch(`https://timeapi.io/api/timezone/coordinate?latitude=${lat}&longitude=${lon}`);
         const data = (await res.json()) as { timeZone: string };
