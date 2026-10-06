@@ -12,6 +12,7 @@
     "@astrojs/sitemap": "^3.7.0",
     "@tailwindcss/vite": "^4.1.18",
     "astro": "^5.17.1",
+    "hike-fly-detect": "github:BarlowR/hike-fly-detect#v0.1.0",
     "igc-xc-score": "^1.8.0",
     "leaflet": "^1.9.4",
     "tailwindcss": "^4.1.18"

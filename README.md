@@ -9,7 +9,7 @@ NorCal-Hike-and-Fly/
 ├── site/                   # Astro frontend (public website)
 ├── scoring/                # Shared scoring logic (canonical source)
 │   ├── hf_scoring.ts       # Main scoring pipeline
-│   ├── analyze_flight.ts   # Launch/landing detection algorithm
+│   ├── analyze_flight.ts   # Wrapper around the hike-fly-detect package
 │   ├── gpx_parser.ts       # GPX file parser
 │   ├── parseFixes.ts       # Flight fix utilities
 │   └── Rules.md            # Scoring rules documentation
@@ -17,12 +17,13 @@ NorCal-Hike-and-Fly/
 │   ├── worker/             # Cloudflare Worker (upload endpoint)
 │   ├── registration-worker/ # Cloudflare Worker (pilot registration)
 │   ├── src/                # Node.js processing pipeline
-│   ├── tests/              # Sample tracks and labeled test cases
-│   └── label_tool.ipynb    # Jupyter notebook for labeling takeoff/landing
+│   └── tests/              # Sample tracks and labeled test cases
 └── email_tool/             # Bulk email sender for pilots
 ```
 
 The `scoring/` directory contains the canonical shared code. Both `site/src/ts/` and `tracklog_handler/src/` reference it via symlinks so the scoring logic stays in sync across the browser and server environments.
+
+The in-air / on-foot detection algorithm itself lives in a separate package, [hike-fly-detect](https://github.com/BarlowR/hike-fly-detect), installed from a git tag in both `site/` and `tracklog_handler/`. `scoring/analyze_flight.ts` is a thin wrapper that builds the column inputs and copies the results back onto the fix objects. To work on the algorithm, point the dependency at a local checkout (`npm install ../hike-fly-detect`) and return to a tag once the change is released.
 
 ## Site (`site/`)
 
@@ -142,22 +143,24 @@ npm run reset
 
 ## Testing (`tracklog_handler/`)
 
-The `analyze_flight` launch/landing detection algorithm has a regression test suite.
+`npm run build && npm test` runs the labeled cases in `tests/labeled/`. Each case names a track in `tests/tracks/` and can carry:
 
-### Label tool workflow
+- `expected` — launch/landing timestamps, checked against the detector with a ±60 second tolerance
+- `scoring` — expected score, triangle type and closure
+- `expected_rejection` — a rejection reason the scorer must report
 
-1. Drop an IGC or GPX file in `tests/tracks/`
-2. Open `label_tool.ipynb` in Jupyter
-3. Set `TRACK_FILE` in the Configuration cell and run all cells
-4. Drag the Launch/Landing sliders to mark the correct times; verify the green/red markers on the map and altitude profile
-5. Click **Save Test Case** — writes `tests/labeled/<stem>.json`
-6. Run the regression tests:
+Launch/landing **labeling** now lives in the [hike-fly-detect](https://github.com/BarlowR/hike-fly-detect) repo, which has the Jupyter label tool and its own label tests. To add a track:
+
+1. Drop the IGC or GPX file in `tests/tracks/`
+2. Regenerate the package's column fixtures from every track in that directory:
 
 ```bash
-npm run build && npm test
+npm run build && npm run fixtures -- ../../hike-fly-detect/test/fixtures
+cd ../../hike-fly-detect/test/fixtures && gzip -9 -f *.json
 ```
 
-Tests pass if detected launch/landing times are within ±60 seconds of the labeled values.
+3. In the `hike-fly-detect` repo, open `label_tool.ipynb`, pick the new fixture, set the launch/landing sliders and click **Save Labels**. Then `npm test` there.
+4. If the track should also be a scoring case here, add `tests/labeled/<stem>.json` by hand with `file`, `scoring` and, if wanted, `expected` (copy the timestamps from the package's `test/labels/<stem>.json`).
 
 ## Email Tool (`email_tool/`)
 
