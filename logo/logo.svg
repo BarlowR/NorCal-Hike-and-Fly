@@ -8,7 +8,7 @@
    version="1.1"
    id="svg1"
    sodipodi:docname="logo.svg"
-   inkscape:export-filename="logo.png"
+   inkscape:export-filename="Patch.png"
    inkscape:export-xdpi="102.4"
    inkscape:export-ydpi="102.4"
    inkscape:version="1.4.2 (ebf0e940, 2025-05-08)"
@@ -27,12 +27,12 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="px"
      inkscape:zoom="2.4513035"
-     inkscape:cx="80.569379"
-     inkscape:cy="64.863449"
-     inkscape:window-width="2336"
-     inkscape:window-height="1257"
-     inkscape:window-x="408"
-     inkscape:window-y="125"
+     inkscape:cx="80.977325"
+     inkscape:cy="32.227751"
+     inkscape:window-width="1512"
+     inkscape:window-height="921"
+     inkscape:window-x="0"
+     inkscape:window-y="33"
      inkscape:window-maximized="0"
      inkscape:current-layer="layer1" />
   <defs
@@ -110,19 +110,15 @@
        id="path1"
        style="opacity:1;fill:#000000;fill-opacity:1;stroke:none"
        inkscape:label="Mountains"
-       transform="translate(-4.8953548,-2.0397311)">
+       transform="matrix(1.3307813,0,0,0.92191029,-30.261465,8.6315989)">
       <path
+         id="path26"
          style="baseline-shift:baseline;display:inline;overflow:visible;vector-effect:none;fill:#000000;fill-opacity:1;stroke:none;stroke-linejoin:round;paint-order:fill markers stroke;enable-background:accumulate;stop-color:#000000;stop-opacity:1"
-         d="M 90.725483,66.615907 74.44814,93.711275 64.692281,78.156588 20.493062,145.27573 h 86.294908 l -2.08984,-3.33203 h 28.12305 z"
-         id="path26" />
-      <path
-         style="baseline-shift:baseline;display:inline;overflow:visible;vector-effect:none;fill:#000000;fill-opacity:1;stroke:none;stroke-linejoin:round;paint-order:fill markers stroke;enable-background:accumulate;stop-color:#000000;stop-opacity:1"
-         d="m 90.753906,64.787109 a 1.8286829,1.8286829 0 0 0 -1.595703,0.886719 L 74.414062,90.216797 66.242187,77.185547 a 1.8286829,1.8286829 0 0 0 -3.076171,-0.03516 L 18.966797,144.26953 a 1.8286829,1.8286829 0 0 0 1.52539,2.83399 h 86.294923 a 1.8286829,1.8286829 0 0 0 1.55078,-2.79883 l -0.33398,-0.53321 h 24.8164 a 1.8286829,1.8286829 0 0 0 1.59766,-2.7207 L 92.322266,65.724609 a 1.8286829,1.8286829 0 0 0 -1.56836,-0.9375 z m -0.08594,5.47461 39.037114,69.853511 h -25.00781 a 1.8286829,1.8286829 0 0 0 -1.54883,2.80079 l 0.33398,0.53125 H 23.886719 l 40.767578,-61.908208 8.24414,13.144532 a 1.8286829,1.8286829 0 0 0 3.117188,-0.03125 z"
-         id="path27" />
+         d="M 88.607884 67.44365 A 1.8286829 1.8286829 0 0 0 87.012545 68.329209 L 72.268505 92.872761 L 64.095146 79.839362 A 1.8286829 1.8286829 0 0 0 61.020413 79.803346 L 33.79692 121.14498 L 113.35691 121.14498 L 113.35691 109.8594 L 90.176805 68.380055 A 1.8286829 1.8286829 0 0 0 88.607884 67.44365 z " />
     </g>
     <g
        id="g13"
-       transform="matrix(0.92303996,0.44056409,-0.43042062,0.9447927,35.881104,6.1346016)"
+       transform="matrix(0.85096004,0.40616057,-0.3968092,0.87101411,40.385348,15.311846)"
        inkscape:label="Glider">
       <g
          id="g15"
@@ -191,5 +187,13 @@
         </g>
       </g>
     </g>
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:8;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;paint-order:fill markers stroke"
+       id="rect1"
+       width="120.71741"
+       height="120.71741"
+       x="-0.39061227"
+       y="-0.79855853"
+       inkscape:label="Merrow" />
   </g>
 </svg>
