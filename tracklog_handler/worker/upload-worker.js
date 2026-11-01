@@ -82,11 +82,14 @@ export default {
         fileData = await request.arrayBuffer();
       }
 
-      // Contest window: April 1 – October 31, 2026
-      const now = new Date();
-      const nowMonth = now.getMonth(); // 0-indexed: 3=April, 9=October
-      if (now.getFullYear() !== 2026 || nowMonth < 3 || nowMonth > 9) {
-        return jsonResponse({ error: "Uploads are only accepted during the contest window (April–October 2026)" }, 403);
+      // Upload window: April 1, 2026 through the end of November 6, 2026 (Pacific).
+      // Flights must still be dated April–October (checked below); the extra
+      // days give pilots time to upload late-October flights.
+      const UPLOAD_OPEN_MS = Date.parse("2026-04-01T00:00:00-07:00");
+      const UPLOAD_CLOSE_MS = Date.parse("2026-11-07T00:00:00-08:00"); // midnight PST ending Nov 6
+      const nowMs = Date.now();
+      if (nowMs < UPLOAD_OPEN_MS || nowMs >= UPLOAD_CLOSE_MS) {
+        return jsonResponse({ error: "Uploads for the 2026 season closed on November 6, 2026" }, 403);
       }
 
       // Basic validation

@@ -64,7 +64,7 @@ A Cloudflare Worker that accepts tracklog uploads from pilots. It:
 ### Upload rules
 
 - Accepted file formats: `.igc`, `.gpx` (10 MB max)
-- Uploads are only accepted during the contest window (April 1 – October 31, 2026)
+- Uploads are accepted from April 1 through November 6, 2026 (Pacific time)
 - Tracklog date must fall within the contest window
 - Rate limited to 10 uploads per IP per minute (enforced via Cloudflare KV)
 - Duplicate files (same SHA-256 hash per user) are rejected silently
