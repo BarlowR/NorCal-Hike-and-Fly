@@ -4,7 +4,7 @@
 * If there is time in the day and you're on the ground, the best direction to go is back towards your car.
 * Hike and Fly is better with friends.
 
-### Contest Rules
+### Contest Rules (2027 Provisional)
 
 #### Divisions
 
@@ -18,7 +18,7 @@ Tracklogs must be submitted within 7 days. Tracklogs can be submitted on the Tra
 
 #### Geographic Region
 
-All tracks must be completed within California or the surrounding area. 
+All tracks must be completed within the USA.
 
 #### Hiking
 

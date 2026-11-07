@@ -39,6 +39,11 @@ export default {
     try {
       const url = new URL(request.url);
 
+      // POST /subscribe  {"email": "..."} — mailing list for next season
+      if (url.pathname === "/subscribe") {
+        return await handleSubscribe(request, env);
+      }
+
       // Expect POST /upload?user_id=alice
       if (url.pathname !== "/upload") {
         return jsonResponse({ error: "Not found" }, 404);
@@ -162,6 +167,35 @@ export default {
     }
   },
 };
+
+// Store a mailing-list signup at mailing_list/<sha256(email)>.json.
+// One object per email, so repeat signups are idempotent. These keys are never
+// listed or linked by the site.
+async function handleSubscribe(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ error: "Invalid request" }, 400);
+  }
+  const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
+  if (email.length > 254 || !/^[^\s@,;<>()"]+@[^\s@,;<>()"]+\.[^\s@,;<>()"]{2,}$/.test(email)) {
+    return jsonResponse({ error: "Please enter a valid email address" }, 400);
+  }
+
+  const hashBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(email));
+  const hash = [...new Uint8Array(hashBuffer)]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  const key = `mailing_list/${hash}.json`;
+
+  if (!(await env.TRACKLOGS.head(key))) {
+    await env.TRACKLOGS.put(key, JSON.stringify({ email, subscribed_at: new Date().toISOString() }), {
+      httpMetadata: { contentType: "application/json" },
+    });
+  }
+  return jsonResponse({ success: true, message: "Thanks! We'll email you when registration opens." }, 200);
+}
 
 // Extract the flight date from an IGC or GPX file's text content.
 // IGC: HFDTEDATE:DDMMYY or HFDTEDDMMYY

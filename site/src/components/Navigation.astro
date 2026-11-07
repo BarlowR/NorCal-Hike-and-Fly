@@ -1,17 +1,21 @@
 ---
 import { Content as Overview } from '../content/Overview.md';
 import { Content as Rules } from '../content/Rules.md';
-import { Content as Prologue } from '../content/Prologue.md';
+import { Content as PastSeasons } from '../content/PastSeasons.md';
 import { Content as TracklogRecording } from '../content/TracklogRecording.md';
+import Register from './Register.astro';
 import About from '../content/About.astro';
 import Scoring from '../content/Scoring.astro';
 // ComponentToggle.astro
+// Set to true to bring back the Tracklog Upload tab and Leaderboard link (e.g. when a new season opens).
+const SHOW_SEASON_TABS = false;
 const tabs = [
   { id: 'overview', label: 'Overview' },
   { id: 'rules', label: 'Rules' },
   { id: 'tracklog-recording', label: 'Tracklog Help' },
-  { id: 'scoring', label: 'Tracklog Upload' },
-  { id: 'prologue', label: 'Prologue' },
+  ...(SHOW_SEASON_TABS ? [{ id: 'scoring', label: 'Tracklog Upload' }] : []),
+  { id: 'past-seasons', label: 'Past Seasons' },
+  { id: 'register', label: 'Register' },
   { id: 'about', label: 'About' },
 ];
 ---
@@ -19,9 +23,9 @@ const tabs = [
 <div class="w-full max-w-4xl mx-auto p-4">
   <!-- Toggle Bar -->
   <div class="flex flex-col border-b border-gray-200 mb-6">
-    <!-- Main tabs: Prologue and About wrap together when narrow -->
+    <!-- Main tabs: Past Seasons and About wrap together when narrow -->
     <div class="flex flex-wrap justify-center">
-      {tabs.filter(t => t.id !== 'scoring' && t.id !== 'prologue' && t.id !== 'about').map(tab => (
+      {tabs.filter(t => t.id !== 'scoring' && t.id !== 'past-seasons' && t.id !== 'register' && t.id !== 'about').map(tab => (
         <button
           class="tab-button px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-600 hover:text-gray-900 border-b-2 border-transparent transition-colors"
           data-tab={tab.id}
@@ -29,12 +33,18 @@ const tabs = [
           {tab.label}
         </button>
       ))}
-      <div class="flex">
+      <div class="flex flex-wrap justify-center">
         <button
           class="tab-button px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-600 hover:text-gray-900 border-b-2 border-transparent transition-colors"
-          data-tab="prologue"
+          data-tab="past-seasons"
         >
-          Prologue
+          Past Seasons
+        </button>
+        <button
+          class="tab-button px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-600 hover:text-gray-900 border-b-2 border-transparent transition-colors"
+          data-tab="register"
+        >
+          Register
         </button>
         <button
           class="tab-button px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-600 hover:text-gray-900 border-b-2 border-transparent transition-colors"
@@ -44,8 +54,8 @@ const tabs = [
         </button>
       </div>
     </div>
-    <!-- Leaderboard and Tracklog Upload always on their own line -->
-    <div class="flex flex-wrap justify-center border-t border-gray-100">
+    {SHOW_SEASON_TABS && (
+      <div class="flex flex-wrap justify-center border-t border-gray-100">
       <button
         class="tab-button px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-600 hover:text-gray-900 border-b-2 border-transparent transition-colors"
         data-tab="scoring"
@@ -59,6 +69,7 @@ const tabs = [
         Leaderboard
       </a>
     </div>
+    )}
   </div>
 
   <!-- Content Panels -->
@@ -66,8 +77,8 @@ const tabs = [
     <Overview />
   </div>
 
-  <div class="tab-content hidden" data-content="prologue">
-    <Prologue />
+  <div class="tab-content hidden" data-content="past-seasons">
+    <PastSeasons />
   </div>
   
   <div class="tab-content hidden" data-content="rules">
@@ -78,13 +89,19 @@ const tabs = [
     <TracklogRecording />
   </div>
 
+  <div class="tab-content hidden" data-content="register">
+    <Register />
+  </div>
+
   <div class="tab-content hidden" data-content="about">
     <About />
   </div>
   
-  <div class="tab-content hidden" data-content="scoring">
-    <Scoring />
-  </div>
+  {SHOW_SEASON_TABS && (
+    <div class="tab-content hidden" data-content="scoring">
+      <Scoring />
+    </div>
+  )}
 </div>
 
 <script>
@@ -111,9 +128,23 @@ const tabs = [
       // Show selected content
       const activeContent = document.querySelector(`[data-content="${tabId}"]`);
       activeContent?.classList.remove('hidden');
+
+      // Keep the URL in sync so tabs can be linked to (e.g. #register).
+      // The first tab is the default, so it gets a clean URL.
+      const hash = button === buttons[0] ? '' : `#${tabId}`;
+      history.replaceState(null, '', `${location.pathname}${location.search}${hash}`);
     });
   });
 
+  // Open the tab named in the URL hash, e.g. <a href="#register">.
+  function openTabFromHash() {
+    const tabId = location.hash.slice(1);
+    const button = tabId && document.querySelector<HTMLElement>(`.tab-button[data-tab="${CSS.escape(tabId)}"]`);
+    if (button) button.click();
+  }
+  window.addEventListener('hashchange', openTabFromHash);
+
   // Set initial active state
   buttons[0]?.classList.add('border-brown-500', 'text-brown-600');
+  openTabFromHash();
 </script>
