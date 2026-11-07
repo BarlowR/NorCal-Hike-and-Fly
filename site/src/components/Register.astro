@@ -52,7 +52,7 @@
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        show(data.message ?? "Thanks! We'll email you when registration opens.", true);
+        show(data.message ?? "Thanks! We'll keep you posted.", true);
         form.reset();
       } else {
         show(data.error ?? 'Something went wrong. Please try again.', false);

@@ -194,7 +194,7 @@ async function handleSubscribe(request, env) {
       httpMetadata: { contentType: "application/json" },
     });
   }
-  return jsonResponse({ success: true, message: "Thanks! We'll email you when registration opens." }, 200);
+  return jsonResponse({ success: true, message: "Thanks! We'll keep you posted." }, 200);
 }
 
 // Extract the flight date from an IGC or GPX file's text content.
