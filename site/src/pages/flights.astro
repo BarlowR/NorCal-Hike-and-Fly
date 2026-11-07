@@ -63,10 +63,28 @@ import Flightmap from "../components/Flightmap.astro";
       </table>
     </div>
 
-    <div id="track-status" class="text-center text-gray-500 py-2 hidden" aria-live="polite"></div>
-
-    <Flightmap />
   </div>
+
+  <!-- Flight map pop-up. Opened by the View buttons; closes on ×, Esc or a click outside. -->
+  <dialog
+    id="map-dialog"
+    aria-labelledby="map-dialog-title"
+    class="m-auto w-[calc(100vw-1rem)] max-w-4xl max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-xl p-0 shadow-2xl backdrop:bg-black/50"
+  >
+    <div class="p-3 sm:p-4">
+      <div class="flex items-center justify-between gap-2 mb-2">
+        <h3 id="map-dialog-title" class="py-0 md:py-0"></h3>
+        <button
+          id="map-dialog-close"
+          type="button"
+          aria-label="Close map"
+          class="shrink-0 rounded-md px-2 text-2xl leading-none text-gray-500 hover:bg-gray-100 hover:text-gray-900 cursor-pointer"
+        >&times;</button>
+      </div>
+      <div id="track-status" class="text-center text-gray-500 py-2 hidden" aria-live="polite"></div>
+      <Flightmap />
+    </div>
+  </dialog>
 </Base>
 
 <script>
@@ -129,7 +147,7 @@ import Flightmap from "../components/Flightmap.astro";
         <td class="text-right py-2 px-3">${formatDuration(f.duration_s)}</td>
         <td class="text-right py-2 px-3">${f.breakdown.closed ? "Closed" : "Open"} ${(f.breakdown.scoring_code || "tri").toUpperCase()}</td>
         <td class="text-center py-2 px-3">
-          <button class="view-flight-btn text-blue-700 underline cursor-pointer" data-track="${f.track_file}" data-src="${f.source_key || ''}" data-lat="${f.launch_lat ?? ''}" data-lon="${f.launch_lon ?? ''}">
+          <button class="view-flight-btn text-blue-700 underline cursor-pointer" data-track="${f.track_file}" data-src="${f.source_key || ''}" data-lat="${f.launch_lat ?? ''}" data-lon="${f.launch_lon ?? ''}" data-title="${f.date} · ${f.score.toFixed(1)} pts">
             View
           </button>
         </td>
@@ -149,7 +167,8 @@ import Flightmap from "../components/Flightmap.astro";
     // Wire up view buttons
     document.querySelectorAll(".view-flight-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
-        const { track, src, lat, lon } = (btn as HTMLElement).dataset;
+        const { track, src, lat, lon, title } = (btn as HTMLElement).dataset;
+        openMapDialog(title ?? "");
         loadTrack(track!, src || '', lat ? Number(lat) : NaN, lon ? Number(lon) : NaN);
       });
     });
@@ -254,6 +273,32 @@ import Flightmap from "../components/Flightmap.astro";
     }
     return p;
   }
+
+  // --- Map pop-up ---
+  const mapDialog = document.getElementById("map-dialog") as HTMLDialogElement;
+  const mapDialogTitle = document.getElementById("map-dialog-title")!;
+
+  function openMapDialog(title: string) {
+    mapDialogTitle.textContent = title;
+    if (!mapDialog.open) {
+      mapDialog.showModal();
+      document.documentElement.style.overflow = "hidden"; // stop the page scrolling behind
+    }
+  }
+  mapDialog.addEventListener("close", () => {
+    document.documentElement.style.overflow = "";
+    latestLoad++; // drop any track still loading
+  });
+  document.getElementById("map-dialog-close")!.addEventListener("click", () => mapDialog.close());
+
+  // Close on a click on the dimmed backdrop. A click there has the dialog itself
+  // as its target. Require the press to start there too, so dragging the map or
+  // scrubbing the chart and releasing outside doesn't close it.
+  let pressStartedOnBackdrop = false;
+  mapDialog.addEventListener("pointerdown", (e) => { pressStartedOnBackdrop = e.target === mapDialog; });
+  mapDialog.addEventListener("click", (e) => {
+    if (e.target === mapDialog && pressStartedOnBackdrop) mapDialog.close();
+  });
 
   const trackStatus = document.getElementById("track-status")!;
   function setTrackStatus(text: string, isError = false) {
