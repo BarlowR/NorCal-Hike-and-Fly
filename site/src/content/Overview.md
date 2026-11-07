@@ -1,6 +1,6 @@
 
 
-### [2026 Season Results](#past-seasons)
+### [2026 Season Results](leaderboard?season=2026)
 
 
 ####  Bringing folks together for friendly competition in the sport of hike and fly!  
