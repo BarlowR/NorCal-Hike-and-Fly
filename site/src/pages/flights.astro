@@ -63,6 +63,8 @@ import Flightmap from "../components/Flightmap.astro";
       </table>
     </div>
 
+    <div id="track-status" class="text-center text-gray-500 py-2 hidden" aria-live="polite"></div>
+
     <Flightmap />
   </div>
 </Base>
@@ -70,7 +72,8 @@ import Flightmap from "../components/Flightmap.astro";
 <script>
   import { R2_PUBLIC_URL } from "../config";
   import { parseFixes } from "../ts/parseFixes.ts";
-  import { igcTimeZone, filterByTimeWindow, getTimezone, COMPETITION_START_HOUR, COMPETITION_END_HOUR } from "../ts/hf_scoring.ts";
+  import { igcTimeZone, getTimezone } from "../ts/hf_scoring.ts";
+  import { decodeDisplayTrack, displayFixesFromSource } from "../ts/display_track.ts";
 
   function formatDuration(seconds: number): string {
     const h = Math.floor(seconds / 3600);
@@ -126,7 +129,7 @@ import Flightmap from "../components/Flightmap.astro";
         <td class="text-right py-2 px-3">${formatDuration(f.duration_s)}</td>
         <td class="text-right py-2 px-3">${f.breakdown.closed ? "Closed" : "Open"} ${(f.breakdown.scoring_code || "tri").toUpperCase()}</td>
         <td class="text-center py-2 px-3">
-          <button class="view-flight-btn text-blue-700 underline cursor-pointer" data-track="${f.track_file}" data-src="${f.source_key || ''}">
+          <button class="view-flight-btn text-blue-700 underline cursor-pointer" data-track="${f.track_file}" data-src="${f.source_key || ''}" data-lat="${f.launch_lat ?? ''}" data-lon="${f.launch_lon ?? ''}">
             View
           </button>
         </td>
@@ -146,9 +149,8 @@ import Flightmap from "../components/Flightmap.astro";
     // Wire up view buttons
     document.querySelectorAll(".view-flight-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
-        const trackFile = (btn as HTMLElement).dataset.track!;
-        const sourceKey = (btn as HTMLElement).dataset.src || '';
-        loadTrack(trackFile, sourceKey);
+        const { track, src, lat, lon } = (btn as HTMLElement).dataset;
+        loadTrack(track!, src || '', lat ? Number(lat) : NaN, lon ? Number(lon) : NaN);
       });
     });
 
@@ -228,73 +230,141 @@ import Flightmap from "../components/Flightmap.astro";
     }
   }
 
-  async function loadTrack(trackFile: string, sourceKey: string) {
-    try {
-      const [trackRes, sourceRes] = await Promise.all([
-        fetch(`${R2_PUBLIC_URL}/${trackFile}`, { cache: 'no-store' }),
-        sourceKey ? fetch(`${R2_PUBLIC_URL}/${sourceKey}`, { cache: 'no-store' }) : Promise.resolve(null),
+  // Timezone lookups (timeapi.io, ~0.5 s each) are only needed for GPX sources
+  // without trackData.display. Memoised per rounded location for the page session.
+  // timeapi.io has no timeout of its own; if it stalls, fall back after a few
+  // seconds to the same longitude-based estimate getTimezone() uses on error.
+  const TZ_TIMEOUT_MS = 4000;
+  const tzCache = new Map<string, Promise<string>>();
+  function timezoneAt(lat: number, lon: number): Promise<string> {
+    const key = `${lat.toFixed(2)},${lon.toFixed(2)}`;
+    let p = tzCache.get(key);
+    if (!p) {
+      let timedOut = false;
+      p = Promise.race([
+        getTimezone(lat, lon),
+        new Promise<string>((resolve) => setTimeout(() => {
+          timedOut = true;
+          const offset = Math.round(lon / 15);
+          resolve(`Etc/GMT${offset > 0 ? '-' : '+'}${Math.abs(offset)}`);
+        }, TZ_TIMEOUT_MS)),
       ]);
+      tzCache.set(key, p);
+      p.then(() => { if (timedOut) tzCache.delete(key); });
+    }
+    return p;
+  }
 
-      if (!trackRes.ok) throw new Error(`HTTP ${trackRes.status}`);
-      const track = await trackRes.json();
-      const td = track.trackData;
+  const trackStatus = document.getElementById("track-status")!;
+  function setTrackStatus(text: string, isError = false) {
+    trackStatus.textContent = text;
+    trackStatus.classList.toggle("hidden", !text);
+    trackStatus.classList.toggle("text-red-600", isError);
+    trackStatus.classList.toggle("text-gray-500", !isError);
+  }
 
-      let detail;
+  // Parsed tracks, so re-viewing a flight is instant.
+  const detailCache = new Map<string, Promise<any>>();
+  let latestLoad = 0;
 
-      if (td?.flightSegments && sourceRes?.ok) {
-        // Current format: parse the source IGC/GPX and apply stored flight segments
-        const content = await sourceRes.text();
-        let fixes = parseFixes(content);
-        const tzFromHeader = igcTimeZone(content);
-        const tz = tzFromHeader ?? (fixes.length > 0
-          ? await getTimezone(fixes[0].latitude, fixes[0].longitude)
-          : null);
-        if (tz) fixes = filterByTimeWindow(fixes, tz, COMPETITION_START_HOUR, COMPETITION_END_HOUR);
-
-        for (const seg of td.flightSegments) {
-          for (const fix of fixes) {
-            if (fix.timestamp >= seg.takeoffMs && fix.timestamp <= seg.landingMs) {
-              fix.onGround = false;
-            }
-          }
-        }
-        detail = {
-          flight: { fixes },
-          groundDist: td.groundDist,
-          best: { scoreInfo: td.scoreInfo, opt: { scoring: td.scoring } },
-          closed: td.closed,
-        };
-      } else if (td?.fixes) {
-        // Intermediate format: full fixes stored in trackData
-        detail = {
-          flight: { fixes: td.fixes },
-          groundDist: td.groundDist,
-          best: { scoreInfo: td.scoreInfo, opt: { scoring: td.scoring } },
-          closed: td.closed,
-        };
-      } else {
-        // Oldest format: downsampled coordinates array only
-        const fixes = (track.coordinates || []).map(
-          (c: [number, number, number]) => ({
-            latitude: c[0], longitude: c[1], gpsAltitude: c[2],
-            timestamp: 0, onGround: false,
-          })
-        );
-        detail = {
-          flight: { fixes },
-          groundDist: 0,
-          best: {
-            scoreInfo: { tp: [], cp: null, ep: null, distance: 0, penalty: 0 },
-            opt: { scoring: { code: "tri", multiplier: 1 } },
-          },
-          closed: false,
-        };
-      }
-
+  async function loadTrack(trackFile: string, sourceKey: string, launchLat: number, launchLon: number) {
+    const loadId = ++latestLoad;
+    setTrackStatus("Loading track…");
+    let p = detailCache.get(trackFile);
+    if (!p) {
+      p = fetchTrackDetail(trackFile, sourceKey, launchLat, launchLon);
+      detailCache.set(trackFile, p);
+      p.catch(() => detailCache.delete(trackFile));
+    }
+    try {
+      const detail = await p;
+      // Ignore a slow load if the user has since clicked another flight
+      if (loadId !== latestLoad) return;
+      setTrackStatus("");
       document.dispatchEvent(new CustomEvent("igc-score-result", { detail }));
     } catch (e: any) {
       console.error("Failed to load track:", e);
+      if (loadId === latestLoad) setTrackStatus(`Failed to load track: ${e.message}`, true);
     }
+  }
+
+  async function fetchTrackDetail(trackFile: string, sourceKey: string, launchLat: number, launchLon: number) {
+    // Start the source download alongside the track JSON (as before) so tracks
+    // without a display track don't pay an extra round trip, but abort it as
+    // soon as the JSON turns out to contain one. Source files are immutable
+    // (timestamped keys), so they may come from the HTTP cache; the track JSON
+    // changes on rescore, so it is revalidated (ETag -> 304) on every view.
+    const sourceAbort = new AbortController();
+    const sourcePromise = sourceKey
+      ? fetch(`${R2_PUBLIC_URL}/${sourceKey}`, { signal: sourceAbort.signal }).catch(() => null)
+      : Promise.resolve(null);
+
+    let track;
+    try {
+      const trackRes = await fetch(`${R2_PUBLIC_URL}/${trackFile}`, { cache: 'no-cache' });
+      if (!trackRes.ok) throw new Error(`HTTP ${trackRes.status}`);
+      track = await trackRes.json();
+    } catch (e) {
+      sourceAbort.abort();
+      throw e;
+    }
+    const td = track.trackData;
+
+    const scoreDetail = (fixes: any[]) => ({
+      flight: { fixes },
+      groundDist: td.groundDist,
+      best: { scoreInfo: td.scoreInfo, opt: { scoring: td.scoring } },
+      closed: td.closed,
+    });
+
+    if (td?.display) {
+      // Newest format: compact display track precomputed by the pipeline
+      sourceAbort.abort();
+      return scoreDetail(decodeDisplayTrack(td.display));
+    }
+
+    if (td?.flightSegments) {
+      // Parse the source IGC/GPX and apply stored flight segments.
+      // GPX has no timezone header; look it up from the launch point while the
+      // source is still downloading rather than after parsing it.
+      const isGpx = /\.gpx$/i.test(sourceKey);
+      const haveLaunch = Number.isFinite(launchLat) && Number.isFinite(launchLon) && (launchLat !== 0 || launchLon !== 0);
+      const tzEarly = isGpx && haveLaunch ? timezoneAt(launchLat, launchLon) : null;
+
+      const sourceRes = await sourcePromise;
+      if (sourceRes?.ok) {
+        const content = await sourceRes.text();
+        let tz = igcTimeZone(content) ?? (tzEarly ? await tzEarly : null);
+        if (!tz) {
+          const first = parseFixes(content)[0];
+          if (first) tz = await timezoneAt(first.latitude, first.longitude);
+        }
+        return scoreDetail(displayFixesFromSource(content, tz, td.flightSegments));
+      }
+    }
+    sourceAbort.abort();
+
+    if (td?.fixes) {
+      // Intermediate format: full fixes stored in trackData
+      return scoreDetail(td.fixes);
+    }
+
+    // Oldest format: downsampled coordinates array only
+    const fixes = (track.coordinates || []).map(
+      (c: [number, number, number]) => ({
+        latitude: c[0], longitude: c[1], gpsAltitude: c[2],
+        timestamp: 0, onGround: false,
+      })
+    );
+    return {
+      flight: { fixes },
+      groundDist: 0,
+      best: {
+        scoreInfo: { tp: [], cp: null, ep: null, distance: 0, penalty: 0 },
+        opt: { scoring: { code: "tri", multiplier: 1 } },
+      },
+      closed: false,
+    };
   }
 
   loadFlights();

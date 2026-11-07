@@ -1,5 +1,6 @@
 import { Point } from "igc-xc-score/src/foundation.js";
 import { scoreTrack } from "./hf_scoring.js";
+import { displayFixesFromSource, encodeDisplayTrack, type DisplayTrack } from "./display_track.js";
 
 export interface ScoreBreakdown {
   triangle_km: number;
@@ -19,6 +20,8 @@ export interface TrackData {
   scoring: { code: string; multiplier: number };
   groundDist: number;
   closed: boolean;
+  /** Compact display-only track for the flights page (absent in files written before Nov 2026). */
+  display?: DisplayTrack;
 }
 
 export interface ScoreResult {
@@ -92,7 +95,7 @@ export async function scoreIgc(igcContent: string): Promise<ScoreResult> {
     throw new Error(`Track is too long (${result.durationH}h, max 9h)`);
   }
 
-  const { best, flight, groundDist, elevationGain, closed, score: flightScore } = result;
+  const { best, flight, groundDist, elevationGain, closed, score: flightScore, timeZone } = result;
 
   // Date from first fix
   const firstFix = flight.fixes[0];
@@ -166,6 +169,9 @@ export async function scoreIgc(igcContent: string): Promise<ScoreResult> {
     },
     groundDist,
     closed,
+    // Same fixes the site would otherwise derive from the source file in the
+    // browser, so the map no longer has to download and parse the IGC/GPX.
+    display: encodeDisplayTrack(displayFixesFromSource(igcContent, timeZone, flightSegments)),
   };
 
   return {

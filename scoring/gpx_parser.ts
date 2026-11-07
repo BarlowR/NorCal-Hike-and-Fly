@@ -50,12 +50,21 @@ export function parseGpx(xmlText: string): IGCParser.IGCFile {
   // Smooth GPS altitude with a 30-second centered moving average.
   // Raw GPS elevation can be noisy (±2–5 m), which creates large apparent vertical
   // speeds. Smoothing gives more accurate vspeed for flight detection.
+  //
+  // fixes are sorted by timestamp, so the fixes within ±HALF_WIN of fix i form a
+  // contiguous index range [lo, hi]. Two pointers find it in O(1) amortized, and the
+  // inner sum walks only that range (in the same ascending order as a full scan, so
+  // results are bit-identical). The old full scan was O(N²): seconds per 20k-fix GPX.
   const HALF_WIN = 15_000;
+  let lo = 0, hi = 0;
   const smoothed = fixes.map((fix, i) => {
+    while (fix.timestamp - fixes[lo].timestamp > HALF_WIN) lo++;
+    if (hi < i) hi = i;
+    while (hi + 1 < fixes.length && fixes[hi + 1].timestamp - fix.timestamp <= HALF_WIN) hi++;
     let sum = 0, count = 0;
-    for (let j = 0; j < fixes.length; j++) {
+    for (let j = lo; j <= hi; j++) {
       const alt = fixes[j].gpsAltitude;
-      if (alt !== null && Math.abs(fixes[j].timestamp - fix.timestamp) <= HALF_WIN) {
+      if (alt !== null) {
         sum += alt;
         count++;
       }
