@@ -89,18 +89,30 @@ const flyingColor = '#001bff';
     if (currentFixes.length) drawElevation(currentFixes, currentIdx);
   });
 
-  function drawElevation(fixes: any[], cursorIdx: number) {
-    const rect = elevCanvas.getBoundingClientRect();
-    if (rect.width === 0) return;
-    elevCanvas.width = Math.floor(rect.width);
-    elevCanvas.height = Math.floor(rect.height);
-    const ctx = elevCanvas.getContext('2d')!;
-    const W = elevCanvas.width, H = elevCanvas.height;
+  // The static part of the chart (axes, fill, colored line) only depends on the
+  // fixes and the canvas size, so it is rendered once to an offscreen canvas and
+  // scrubbing just blits it and draws the cursor. Redrawing everything per
+  // mousemove (one stroke() per fix) made scrubbing large tracks janky.
+  type ChartBase = {
+    fixes: any[]; W: number; H: number;
+    canvas: HTMLCanvasElement;
+    xOf: (i: number) => number; yOf: (alt: number) => number;
+  };
+  let chartBase: ChartBase | null = null;
+
+  function renderChartBase(fixes: any[], W: number, H: number): ChartBase {
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d')!;
     const plotW = W - PL - PR, plotH = H - PT - PB;
 
-    const alts = fixes.map(altOf);
-    const minAlt = Math.min(...alts);
-    const maxAlt = Math.max(...alts);
+    let minAlt = Infinity, maxAlt = -Infinity;
+    for (const f of fixes) {
+      const a = altOf(f);
+      if (a < minAlt) minAlt = a;
+      if (a > maxAlt) maxAlt = a;
+    }
     const range = maxAlt - minAlt || 1;
 
     const xOf = (i: number) => PL + (i / (fixes.length - 1)) * plotW;
@@ -135,7 +147,9 @@ const flyingColor = '#001bff';
     ctx.fillStyle = 'rgba(0,27,255,0.07)';
     ctx.fill();
 
-    // Colored line (ground vs flight)
+    // Colored line (ground vs flight). Deliberately one stroke per segment: on
+    // dense tracks the overlapping anti-aliased strokes give the line its weight,
+    // and a single batched path looks visibly thinner. It costs a few ms, once.
     const hasState = fixes.some((f: any) => f.onGround !== undefined);
     if (hasState) {
       for (let i = 1; i < fixes.length; i++) {
@@ -156,6 +170,22 @@ const flyingColor = '#001bff';
       ctx.lineWidth = 1.5;
       ctx.stroke();
     }
+
+    return { fixes, W, H, canvas, xOf, yOf };
+  }
+
+  function drawElevation(fixes: any[], cursorIdx: number) {
+    const rect = elevCanvas.getBoundingClientRect();
+    if (rect.width === 0) return;
+    const W = Math.floor(rect.width), H = Math.floor(rect.height);
+    if (!chartBase || chartBase.fixes !== fixes || chartBase.W !== W || chartBase.H !== H) {
+      chartBase = renderChartBase(fixes, W, H);
+    }
+    if (elevCanvas.width !== W) elevCanvas.width = W;
+    if (elevCanvas.height !== H) elevCanvas.height = H;
+    const ctx = elevCanvas.getContext('2d')!;
+    ctx.drawImage(chartBase.canvas, 0, 0);
+    const { xOf, yOf } = chartBase;
 
     // Cursor
     if (cursorIdx >= 0 && cursorIdx < fixes.length) {

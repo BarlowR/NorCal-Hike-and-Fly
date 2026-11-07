@@ -1,0 +1,66 @@
+<div class="flex flex-col gap-4 max-w-md mx-auto">
+  <p class="text-gray-700">
+    Registration for the next season isn't open yet. Leave your email and we'll keep you up to date.
+  </p>
+  <form id="register-form" class="flex flex-col gap-3" novalidate>
+    <div class="flex flex-col gap-1">
+      <label for="register-email" class="text-sm font-medium text-gray-700">Email address</label>
+      <input
+        id="register-email"
+        type="email"
+        required
+        maxlength="254"
+        autocomplete="email"
+        placeholder="you@example.com"
+        class="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+      />
+    </div>
+    <button
+      id="register-btn"
+      type="submit"
+      class="self-start rounded-md border border-blue-600 bg-transparent px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+    >
+      Register Your Interest
+    </button>
+    <div id="register-status" class="hidden text-sm" role="status"></div>
+  </form>
+</div>
+
+<script>
+  const form = document.getElementById('register-form') as HTMLFormElement;
+  const emailInput = document.getElementById('register-email') as HTMLInputElement;
+  const btn = document.getElementById('register-btn') as HTMLButtonElement;
+  const status = document.getElementById('register-status') as HTMLElement;
+
+  function show(msg: string, ok: boolean) {
+    status.textContent = msg;
+    status.className = `text-sm ${ok ? 'text-green-700' : 'text-red-600'}`;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!emailInput.checkValidity()) {
+      show('Please enter a valid email address.', false);
+      return;
+    }
+    btn.disabled = true;
+    try {
+      const res = await fetch('https://tracklog-upload.norcalhf.workers.dev/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailInput.value }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        show(data.message ?? "Thanks! We'll email you when registration opens.", true);
+        form.reset();
+      } else {
+        show(data.error ?? 'Something went wrong. Please try again.', false);
+      }
+    } catch {
+      show('Network error. Please try again.', false);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+</script>

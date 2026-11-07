@@ -1,3 +1,28 @@
+## [2026 Season](/leaderboard?season=2026)
+
+#### Winners of the 2026 NorCal H&F Contest:
+
+1. Aerocooper ([553.0](https://norcalhf.com/flights?user=Aerocooper&season=2026))
+2. merlin-rob ([423.6](https://norcalhf.com/flights?user=merlin-rob&season=2026))
+3. bw ([334.4](https://norcalhf.com/flights?user=bw&season=2026))
+
+Division winners:
+
+* EN-D: Aerocooper ([553.0](https://norcalhf.com/flights?user=Aerocooper&season=2026))
+* EN-C: merlin-rob ([423.6](https://norcalhf.com/flights?user=merlin-rob&season=2026))
+* EN-B: Dr_Jerm ([165.7](https://norcalhf.com/flights?user=Dr_Jerm&season=2026))
+
+Category winners:
+
+* Total Hiking Distance: bw (182.5 km)
+* Total Vertical: bw (13,731 m)
+
+[View 2026 Leaderboard](/leaderboard?season=2026)
+
+The 2026 season ran from April 4th to October 31st.
+
+## [Prologue](/leaderboard?season=prologue)
+
 #### Winners of the NorCal H&F Contest Prologue:
 
 1. Michael Vergalla ([152.6](https://norcalhf.com/flights?user=Mikevsoar&season=prologue))

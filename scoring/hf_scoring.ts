@@ -200,7 +200,7 @@ export async function scoreTrack(file_contents: string) {
         console.log(`  Scoring: tri=${triangleDist.toFixed(2)} penalty=${penalty.toFixed(2)} ground=${groundDist.toFixed(2)} mult=${multiplier} closed=${closed}`);
         console.log(`  Final score: ${score.toFixed(2)} (optimal=${best.optimal}, cycles=${cycles})`);
 
-        return { best: best, flight: flight, groundDist: groundDist, elevationGain: elevationGain, closed: closed, score: score, filteredByTime: filteredByTime };
+        return { best: best, flight: flight, groundDist: groundDist, elevationGain: elevationGain, closed: closed, score: score, filteredByTime: filteredByTime, timeZone: timeZone };
     } catch (e) {
         console.error(e);
     }

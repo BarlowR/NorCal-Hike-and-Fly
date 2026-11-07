@@ -32,3 +32,6 @@ local_data/
 
 # User manifest
 users.json
+
+# R2 backups (npm run backup) — contain pilot tracks and emails
+**/backup-*/

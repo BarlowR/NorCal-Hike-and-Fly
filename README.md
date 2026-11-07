@@ -125,8 +125,8 @@ npm run sync-local
 # Back up the entire R2 bucket to a local directory
 npm run backup
 
-# Prologue data migration to prologue/ prefix
-npm run archive-prologue
+# Read-only check that a finished season is ready to archive (empty incoming/, leaderboard present)
+npm run archive-season -- --season=2026
 
 # (Dangerous!!) Clear all scores and leaderboard for the current season
 npm run reset
